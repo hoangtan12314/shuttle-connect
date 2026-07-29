@@ -1,6 +1,9 @@
 # Dependencies
 node_modules
 
+# sst
+.sst
+
 # Build output
 dist
 dist-ssr

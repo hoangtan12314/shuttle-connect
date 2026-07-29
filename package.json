@@ -3,14 +3,20 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev:frontend": "pnpm --filter frontend dev",
-    "dev:server": "pnpm --filter server start:dev",
-    "build:frontend": "pnpm --filter frontend build",
+    "build:types": "pnpm --filter @shuttle-connect/types build",
+    "dev:frontend": "pnpm run build:types && pnpm --filter frontend dev",
+    "dev:server": "pnpm run build:types && pnpm --filter server start:dev",
+    "build:frontend": "pnpm run build:types && pnpm --filter frontend build",
+    "sst:dev": "pnpm run build:types && sst dev",
+    "sst:deploy": "pnpm run build:types && sst deploy",
+    "sst:remove": "sst remove",
     "prepare": "husky"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",
     "@commitlint/config-conventional": "^21.2.0",
-    "husky": "^9.1.7"
+    "@types/aws-lambda": "^8.10.162",
+    "husky": "^9.1.7",
+    "sst": "^4.17.1"
   }
 }
