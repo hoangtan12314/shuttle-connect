@@ -1,20 +1,30 @@
-export class InvalidSlotValuesError extends Error {
-    constructor(slotsRemaining: number, slotsTotal: number) {
-        super(`Invalid slot values: slotsRemaining (${slotsRemaining}) cannot be less than 0 or greater than slotsTotal (${slotsTotal}).`);
-        this.name = "InvalidSlotValuesError";
-    }
+import { ErrorCode } from '@shuttle-connect/types';
+import { DomainError } from '../shared/errors/domain.error';
+
+export class InvalidSlotValuesError extends DomainError {
+  readonly code = ErrorCode.INVALID_SLOT_VALUES;
+  constructor(slotsRemaining: number, slotsTotal: number) {
+    super(
+      `Invalid slot values: slotsRemaining (${slotsRemaining}) cannot be less than 0 or greater than slotsTotal (${slotsTotal}).`,
+    );
+    this.name = 'InvalidSlotValuesError';
+  }
 }
 
-export class SessionFullError extends Error {
-    constructor() {
-        super("Session is full. No slots remaining.");
-        this.name = "SessionFullError";
-    }
+export class SessionFullError extends DomainError {
+  readonly code = ErrorCode.SESSION_FULL;
+
+  constructor() {
+    super('Session is full. No slots remaining.');
+    this.name = 'SessionFullError';
+  }
 }
 
-export class SessionNotOpenError extends Error {
-    constructor(sessionStatus: string) {
-        super(`Session is not open for registration. Current status: ${sessionStatus}`);
-        this.name = "SessionNotOpenError";
-    }
+export class SessionNotOpenError extends DomainError {
+  readonly code = ErrorCode.SESSION_NOT_OPEN;
+
+  constructor(sessionStatus: string) {
+    super(`Session is not open for registration. Current status: ${sessionStatus}`);
+    this.name = 'SessionNotOpenError';
+  }
 }

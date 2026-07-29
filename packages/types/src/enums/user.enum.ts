@@ -1,0 +1,7 @@
+export enum SkillLevel {
+  BEGINNER = 1,
+  NOVICE = 2,
+  LOWER_INTERMEDIATE = 3,
+  INTERMEDIATE = 4,
+  UPPER_INTERMEDIATE = 5,
+}
