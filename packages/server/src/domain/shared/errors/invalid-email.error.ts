@@ -1,7 +1,8 @@
-import { DomainError } from './domain.error';
+import { ErrorCode } from '@shuttle-connect/types';
+import { ValidationError } from './validation.error';
 
-export class InvalidEmailError extends DomainError {
-  readonly code = 'INVALID_EMAIL';
+export class InvalidEmailError extends ValidationError {
+  readonly code = ErrorCode.INVALID_EMAIL;
   constructor() {
     super('Invalid email address');
   }

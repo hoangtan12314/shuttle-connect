@@ -5,6 +5,8 @@ import { Callback, Context, Handler } from 'aws-lambda';
 import express from 'express';
 import serverlessExpress from '@codegenie/serverless-express';
 import { SessionModule } from '../../ioc';
+import { GlobalExceptionFilter } from '../../../controller/filters';
+import { ResponseTransformInterceptor } from '../../rest';
 
 let cachedServer: Handler;
 
@@ -18,6 +20,8 @@ async function bootstrapServer(): Promise<Handler> {
   nestApp.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
+  nestApp.useGlobalInterceptors(new ResponseTransformInterceptor());
+  nestApp.useGlobalFilters(new GlobalExceptionFilter());
 
   await nestApp.init();
 

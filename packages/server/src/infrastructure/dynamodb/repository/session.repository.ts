@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { SessionItemResponse, SessionOverview } from '@shuttle-connect/types';
 import { Session, SessionRepository } from '../../../domain/session';
 import { SessionMapper } from '../mapper';
 import { DYNAMODB_CLIENT, TABLE_NAME } from '../provider';
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 
 @Injectable()
 export class SessionRepositoryDynamoDB implements SessionRepository {
@@ -11,8 +12,19 @@ export class SessionRepositoryDynamoDB implements SessionRepository {
     @Inject(TABLE_NAME) private tableName: string,
   ) {}
 
-  async listAll(): Promise<Session[]> {
-    return [];
+  async listAll(): Promise<SessionOverview[]> {
+    return []
+  }
+
+  async findById(id: string): Promise<SessionItemResponse | null> {
+    const result = await this.client.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: { PK: `SESSION#${id}`, SK: 'META' },
+      }),
+    );
+
+    return result.Item ? SessionMapper.toResponse(result.Item) : null;
   }
 
   async create(session: Session): Promise<void> {

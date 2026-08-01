@@ -1,5 +1,9 @@
-import { Body, Controller, Get, Inject, Post } from '@nestjs/common';
-import { CreateSessionsUseCase, ListAllSessionsUseCase } from '../../application/session';
+import { Body, Controller, Get, Inject, Param, Post } from '@nestjs/common';
+import {
+  CreateSessionsUseCase,
+  GetSessionByIdUseCase,
+  ListAllSessionsUseCase,
+} from '../../application/session';
 import { CreateSessionDto } from '../dtos';
 
 @Controller('sessions')
@@ -9,6 +13,8 @@ export class SessionController {
     private readonly listAllSessionsUseCase: ListAllSessionsUseCase,
     @Inject(CreateSessionsUseCase)
     private readonly createSessionUseCase: CreateSessionsUseCase,
+    @Inject(GetSessionByIdUseCase)
+    private readonly getSessionByIdUseCase: GetSessionByIdUseCase,
   ) {}
 
   @Get()
@@ -16,9 +22,14 @@ export class SessionController {
     return await this.listAllSessionsUseCase.execute();
   }
 
+  @Get(':id')
+  async getSessionById(@Param('id') id: string) {
+    return this.getSessionByIdUseCase.execute(id);
+  }
+
   @Post()
   async createSession(@Body() createSessionDTO: CreateSessionDto) {
     // TODO: Implement Cognito Auth guard after finish testing the API flow
-    await this.createSessionUseCase.execute("1234", createSessionDTO);
+    await this.createSessionUseCase.execute('1234', createSessionDTO);
   }
 }
