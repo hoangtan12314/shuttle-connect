@@ -2,7 +2,7 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import { Callback, Context, Handler } from 'aws-lambda';
 import express from 'express';
 import serverlessExpress from '@codegenie/serverless-express';
-import { SessionModule } from '../../ioc';
+import { CourtModule } from '../../ioc';
 import { bootstrapNestApp } from './config.lambda';
 
 let cachedServer: Handler;
@@ -11,7 +11,7 @@ async function bootstrapServer(): Promise<Handler> {
   const expressApp = express();
   const adapter = new ExpressAdapter(expressApp);
 
-  await bootstrapNestApp(SessionModule, adapter);
+  await bootstrapNestApp(CourtModule, adapter);
 
   return serverlessExpress({
     app: expressApp,

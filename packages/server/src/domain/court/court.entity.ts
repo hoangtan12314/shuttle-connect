@@ -1,28 +1,29 @@
 import { randomUUID } from 'crypto';
+import { Area, City } from '@shuttle-connect/types';
 import { InvalidFieldLengthError } from '../shared/errors';
 import { GeoCoordinate } from '../shared/value-objects';
 
 export interface CourtProps {
   name: string;
   address: string;
-  district: string;
-  city: string;
+  district: Area;
+  city: City;
   latitude: number;
   longitude: number;
 }
 
-const MAX_NAME_LENGTH = 100;
-const MAX_ADDRESS_LENGTH = 200;
-const MIN_NAME_LENGTH = 2;
-const MIN_ADDRESS_LENGTH = 2;
+export const MAX_NAME_LENGTH = 100;
+export const MAX_ADDRESS_LENGTH = 200;
+export const MIN_NAME_LENGTH = 2;
+export const MIN_ADDRESS_LENGTH = 2;
 
 export class Court {
   private constructor(
-    private id: string,
+    public readonly id: string,
     private name: string,
     private address: string,
-    private district: string,
-    private city: string,
+    private district: Area,
+    private city: City,
     private location: GeoCoordinate,
     private createdAt: Date,
   ) {}
@@ -44,18 +45,6 @@ export class Court {
       props.city,
       GeoCoordinate.create(props.latitude, props.longitude),
       new Date(),
-    );
-  }
-
-  static fromPersistence(props: CourtProps & { id: string; createdAt: Date }): Court {
-    return new Court(
-      props.id,
-      props.name,
-      props.address,
-      props.district,
-      props.city,
-      GeoCoordinate.create(props.latitude, props.longitude),
-      props.createdAt,
     );
   }
 

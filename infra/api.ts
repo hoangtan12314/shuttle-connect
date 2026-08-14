@@ -1,6 +1,6 @@
-import { sessionFunction } from "./function";
+import { sessionFunction, courtFunction } from "./function";
 
-const api = new sst.aws.ApiGatewayV2("shuttle-connect-api", {
+export const api = new sst.aws.ApiGatewayV2("shuttle-connect-api", {
   cors: {
     allowMethods: ["*"],
     allowOrigins: ["http://localhost:5173"],
@@ -9,3 +9,6 @@ const api = new sst.aws.ApiGatewayV2("shuttle-connect-api", {
 
 api.route("ANY /sessions/{proxy+}", sessionFunction.arn);
 api.route("ANY /sessions", sessionFunction.arn);
+api.route("ANY /courts/{proxy+}", courtFunction.arn);
+api.route("ANY /courts", courtFunction.arn);
+

@@ -19,3 +19,23 @@ export const sessionFunction = new sst.aws.Function("SessionHandler", {
     },
   },
 });
+
+export const courtFunction = new sst.aws.Function("CourtHandler", {
+  handler:
+    "packages/server/src/infrastructure/function/lambda/court.lambda.handler",
+  link: [table],
+  logging: {
+    retention: "1 month",
+  },
+  nodejs: {
+    esbuild: {
+      external: [
+        "@aws-sdk/*",
+        "@nestjs/microservices",
+        "@nestjs/microservices/microservices-module",
+        "@nestjs/websockets",
+        "@nestjs/websockets/socket-module",
+      ],
+    },
+  },
+});

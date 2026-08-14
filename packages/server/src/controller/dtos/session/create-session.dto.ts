@@ -1,4 +1,4 @@
-import { IsDateString, IsEnum, IsInt, IsISO8601, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsEnum, IsInt, IsISO8601, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { CreateSessionInput, ShuttleType, SkillLevel } from '@shuttle-connect/types';
 
 export class CreateSessionDto implements CreateSessionInput {

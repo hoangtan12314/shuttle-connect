@@ -5,6 +5,7 @@ import {
   ListAllSessionsUseCase,
 } from '../../application/session';
 import { CreateSessionDto } from '../dtos';
+import { ValidateBodyPipe } from '../pipes';
 
 @Controller('sessions')
 export class SessionController {
@@ -28,7 +29,9 @@ export class SessionController {
   }
 
   @Post()
-  async createSession(@Body() createSessionDTO: CreateSessionDto) {
+  async createSession(
+    @Body(new ValidateBodyPipe(CreateSessionDto)) createSessionDTO: CreateSessionDto,
+  ) {
     // TODO: Implement Cognito Auth guard after finish testing the API flow
     await this.createSessionUseCase.execute('1234', createSessionDTO);
   }
