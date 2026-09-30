@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
-import { Area, City } from '@shuttle-connect/types';
-import { InvalidFieldLengthError } from '../shared/errors';
+import { Area, CITY_AREAS, City } from '@shuttle-connect/types';
+import { InvalidCityDistrictError, InvalidFieldLengthError } from '../shared/errors';
 import { GeoCoordinate } from '../shared/value-objects';
 
 export interface CourtProps {
@@ -24,7 +24,7 @@ export class Court {
     private address: string,
     private district: Area,
     private city: City,
-    private location: GeoCoordinate,
+    private coordinates: GeoCoordinate,
     private createdAt: Date,
   ) {}
 
@@ -35,6 +35,10 @@ export class Court {
 
     if (props.address.length < MIN_ADDRESS_LENGTH || props.address.length > MAX_ADDRESS_LENGTH) {
       throw new InvalidFieldLengthError('address', MIN_ADDRESS_LENGTH, MAX_ADDRESS_LENGTH);
+    }
+
+    if (!CITY_AREAS[props.city].includes(props.district)) {
+      throw new InvalidCityDistrictError(props.city, props.district);
     }
 
     return new Court(
@@ -55,8 +59,8 @@ export class Court {
       address: this.address,
       district: this.district,
       city: this.city,
-      latitude: this.location.lat,
-      longitude: this.location.lng,
+      latitude: this.coordinates.lat,
+      longitude: this.coordinates.lng,
       createdAt: this.createdAt,
     };
   }

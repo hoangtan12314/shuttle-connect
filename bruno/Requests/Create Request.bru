@@ -1,0 +1,44 @@
+meta {
+  name: Create Request
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/requests
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "sessionId": "{{sessionId}}"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.success: eq true
+  res.body.data.status: eq PENDING
+}
+
+tests {
+  test("returns the join request tied to the session, owned by the authenticated user", function () {
+    const request = res.getBody().data;
+    expect(request.sessionId).to.equal(bru.getEnvVar("sessionId"));
+    expect(request.userId).to.be.a("string");
+    expect(request.userId).to.equal(bru.getEnvVar("userId"));
+  });
+}
+
+docs {
+  Creates a join request against the session, as the same user who created it (`userId`,
+  captured by **Sessions / Create Session**). `CreateRequestUseCase.execute` now takes that
+  id from `@CurrentUser()` instead of the old hardcoded
+  `SOME_ID_THAT_NEED_TO_BE_REPLACED` constant.
+
+  Written item shape: `PK=SESSION#<id>`, `SK=REQUEST#USER#<userId>`, plus `location`
+  and `session_start_time` / `session_end_time`. The times are named `session_*` on
+  purpose -- a bare `start_time` alongside `location` would put this request into the
+  browse index, which must return sessions only.
+}

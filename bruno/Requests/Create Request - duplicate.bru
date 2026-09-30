@@ -1,0 +1,38 @@
+meta {
+  name: Create Request - duplicate
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/requests
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "sessionId": "{{sessionId}}"
+  }
+}
+
+assert {
+  res.status: eq 500
+}
+
+docs {
+  ## This asserts current behaviour, not desired behaviour
+
+  Run **Create Request** first, then this. The repository writes with
+  `ConditionExpression: attribute_not_exists(PK) AND attribute_not_exists(SK)`, so the
+  second write is correctly rejected by DynamoDB -- the row is safe, an APPROVED
+  request can't be silently reset to PENDING.
+
+  But `ConditionalCheckFailedException` comes from the AWS SDK and is not a
+  `DomainError`, so `GlobalExceptionFilter` falls through to **500 SERVER_ERROR**.
+  It should be a 409.
+
+  The fix is a `DuplicateRequestError extends ConflicError` plus a new `ErrorCode`,
+  caught in the repository and rethrown. When that lands, change this assertion to
+  409 / `DUPLICATE_REQUEST`.
+}

@@ -1,0 +1,28 @@
+meta {
+  name: Create Request - unknown session
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/requests
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "sessionId": "does-not-exist"
+  }
+}
+
+assert {
+  res.status: eq 404
+  res.body.success: eq false
+  res.body.error.code: eq ENTITY_NOT_FOUND
+}
+
+docs {
+  `CreateRequestUseCase` looks the session up first and throws `EntityNotFoundError`
+  before touching the request repository.
+}

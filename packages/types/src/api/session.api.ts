@@ -1,4 +1,4 @@
-import { ShuttleType, SkillLevel, SessionStatus } from "../enums";
+import { Area, City, ShuttleType, SkillLevel, SessionStatus } from "../enums";
 
 export interface CreateSessionInput {
   courtId: string;
@@ -29,7 +29,9 @@ export interface SessionItemResponse {
   court: {
     id: string;
     name: string;
-    location: { lat: number; lng: number };
+    coordinates: { lat: number; lng: number };
+    district: Area;
+    city: City;
   };
   host: {
     id: string;
@@ -47,6 +49,6 @@ export interface SessionOverview{
   court: {
     id: string;
     name: string;
-    location: { lat: number; lng: number };
+    coordinates: { lat: number; lng: number };
   };
 }

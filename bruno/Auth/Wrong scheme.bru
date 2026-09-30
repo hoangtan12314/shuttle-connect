@@ -1,0 +1,39 @@
+meta {
+  name: Wrong scheme
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/courts
+  body: json
+  auth: none
+}
+
+headers {
+  authorization: Basic abc123
+}
+
+body:json {
+  {
+    "name": "Should not be created",
+    "address": "N/A",
+    "city": "HCM",
+    "district": "HCM_DISTRICT_10",
+    "latitude": 10.771505716410465,
+    "longitude": 106.66471299999887
+  }
+}
+
+assert {
+  res.status: eq 401
+  res.body.success: eq false
+  res.body.error.code: eq UNAUTHORIZED
+}
+
+docs {
+  A non-Bearer `Authorization` header. `AuthGuard`'s `BEARER` regex
+  (`/^Bearer\s+(\S+)\$/i`) doesn't match `Basic ...`, so `token` is `undefined` and the guard
+  rejects it before ever reaching the verifier -- distinct from **Malformed token**, which
+  does reach the verifier.
+}

@@ -1,0 +1,37 @@
+meta {
+  name: Malformed token
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/courts
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: not-a-real-jwt
+}
+
+body:json {
+  {
+    "name": "Should not be created",
+    "address": "N/A",
+    "city": "HCM",
+    "district": "HCM_DISTRICT_10",
+    "latitude": 10.771505716410465,
+    "longitude": 106.66471299999887
+  }
+}
+
+assert {
+  res.status: eq 401
+  res.body.success: eq false
+  res.body.error.code: eq UNAUTHORIZED
+}
+
+docs {
+  A syntactically invalid token. `tokenVerifier.verify()` throws, and `AuthGuard.verify()`
+  maps anything that isn't a `FetchError` to `UnauthorizedError`.
+}

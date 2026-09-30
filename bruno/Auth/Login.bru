@@ -1,0 +1,69 @@
+meta {
+  name: Login
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://cognito-idp.{{awsRegion}}.amazonaws.com/
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/x-amz-json-1.1
+  x-amz-target: AWSCognitoIdentityProviderService.InitiateAuth
+}
+
+body:json {
+  {
+    "AuthFlow": "USER_PASSWORD_AUTH",
+    "ClientId": "{{cognitoClientId}}",
+    "AuthParameters": {
+      "USERNAME": "{{testEmail}}",
+      "PASSWORD": "{{process.env.TEST_PASSWORD}}"
+    }
+  }
+}
+
+script:post-response {
+  const result = res.getBody().AuthenticationResult;
+  bru.setEnvVar("idToken", result.IdToken);
+  bru.setEnvVar("accessToken", result.AccessToken);
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Logs in the test user directly against Cognito's `InitiateAuth` API (no AWS credentials
+  needed -- this is a public, unsigned endpoint) and saves `idToken` for every other request
+  in the collection to inherit.
+
+  `auth: none` is deliberate here: sending a Bearer header to this endpoint makes Cognito try
+  to parse it and reject the call, since this is a raw AWS API, not your app.
+
+  ## One-time setup
+
+  1. Create a test user (requires `name`, since the pool marks it a required attribute):
+     ```bash
+     aws cognito-idp admin-create-user --user-pool-id <userPoolId> --username test@example.com \
+       --user-attributes Name=email,Value=test@example.com Name=email_verified,Value=true \
+                          Name=name,Value="Test User" \
+       --message-action SUPPRESS
+     aws cognito-idp admin-set-user-password --user-pool-id <userPoolId> \
+       --username test@example.com --password 'Test1234!' --permanent
+     ```
+  2. Fill in `cognitoClientId` / `testEmail` / `awsRegion` in `environments/dev.bru`.
+  3. Create `bruno/.env` (git-ignored by the repo's root `.env` rule) with:
+     ```
+     TEST_PASSWORD=Test1234!
+     ```
+
+  Run this before anything else, and re-run it whenever protected requests start returning
+  401 unexpectedly -- the ID token expires after **1 hour**.
+
+  `USER_PASSWORD_AUTH` only works on non-production stages -- see `infra/auth.ts`'s
+  `explicitAuthFlows`.
+}

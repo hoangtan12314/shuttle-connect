@@ -10,6 +10,11 @@ export default $config({
     };
   },
   async run() {
-    await import("./infra");
+    const infra = await import("./infra");
+    return {
+      api: infra.api.url,
+      userPoolId: infra.userPool.id,
+      userPoolClientId: infra.userPoolClient.id,
+    };
   },
 });

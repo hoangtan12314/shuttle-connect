@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { SessionItemResponse, SessionOverview } from '@shuttle-connect/types';
+import { CourtItemResponse, SessionItemResponse, SessionOverview } from '@shuttle-connect/types';
 import { Session, SessionRepository } from '../../../domain/session';
-import { SessionMapper } from '../mapper';
+import { SessionMapper, sessionGsi1, sessionGsi2, toLocationKey } from '../mapper';
 import { DYNAMODB_CLIENT, TABLE_NAME } from '../provider';
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 
@@ -13,7 +13,7 @@ export class SessionRepositoryDynamoDB implements SessionRepository {
   ) {}
 
   async listAll(): Promise<SessionOverview[]> {
-    return []
+    return [];
   }
 
   async findById(id: string): Promise<SessionItemResponse | null> {
@@ -27,23 +27,24 @@ export class SessionRepositoryDynamoDB implements SessionRepository {
     return result.Item ? SessionMapper.toResponse(result.Item) : null;
   }
 
-  async create(session: Session): Promise<void> {
+  async create(session: Session, court: CourtItemResponse): Promise<void> {
     const item = SessionMapper.toPersistence(session);
 
-    // TODO: implement logic to search for court to get cour data and validate court existence
     const denormalizeData = {
-      lat: 10.771505716410465,
-      lng: 106.66471299999887,
-      court_name: 'T19',
+      lat: court.latitude,
+      lng: court.longitude,
+      court_name: court.name,
+      location: toLocationKey(court.city, court.district),
       user_name: 'Nguyen Van A',
+      // GSI1: browse this district. GSI2: this session shows up under its host's "hosted" list.
+      ...sessionGsi1(court.city, court.district, item.start_time),
+      ...sessionGsi2(item.user_id, item.start_time),
     };
 
     const itemToBeSaved = {
       ...item,
       ...denormalizeData,
     };
-
-    console.log("Item: ", itemToBeSaved);
 
     await this.client.send(
       new PutCommand({

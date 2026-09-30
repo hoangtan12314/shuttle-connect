@@ -2,6 +2,7 @@ import { Body, Controller, Get, Inject, Param, Post } from '@nestjs/common';
 import { CreateCourtDto } from '../dtos/court';
 import { GetCourtByIdUseCase, CreateCourtUseCase } from '../../application/court';
 import { ValidateBodyPipe } from '../pipes';
+import { Public } from '../guard';
 
 @Controller('courts')
 export class CourtController {
@@ -12,15 +13,16 @@ export class CourtController {
     private readonly createCourtUseCase: CreateCourtUseCase,
   ) {}
 
+  @Public()
   @Get(':id')
   async getCourtById(@Param('id') id: string) {
-    return this.getCourtByIdUseCase.execute(id);
+    const court = await this.getCourtByIdUseCase.execute(id);
+    return court; 
   }
 
   @Post()
   async createCourt(@Body(new ValidateBodyPipe(CreateCourtDto)) createCourtDto: CreateCourtDto) {
-    console.log('CourtController.createCourt: createCourtDto', createCourtDto);
-    return this.createCourtUseCase.execute({
+    const createdCourt = await this.createCourtUseCase.execute({
       name: createCourtDto.name,
       address: createCourtDto.address,
       district: createCourtDto.district,
@@ -28,5 +30,6 @@ export class CourtController {
       latitude: createCourtDto.latitude,
       longitude: createCourtDto.longitude,
     });
+    return createdCourt;
   }
 }

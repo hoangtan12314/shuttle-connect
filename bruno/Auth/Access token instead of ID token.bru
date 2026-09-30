@@ -1,0 +1,42 @@
+meta {
+  name: Access token instead of ID token
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/courts
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "Should not be created",
+    "address": "N/A",
+    "city": "HCM",
+    "district": "HCM_DISTRICT_10",
+    "latitude": 10.771505716410465,
+    "longitude": 106.66471299999887
+  }
+}
+
+assert {
+  res.status: eq 401
+  res.body.success: eq false
+  res.body.error.code: eq UNAUTHORIZED
+}
+
+docs {
+  Cognito's access token is real and correctly signed, but it isn't an ID token, and it
+  carries no `email`/`name` claims -- providing a user could never be created from it.
+
+  `CognitoTokenVerifierProvider` is configured with `tokenUse: 'id'`, so `verify()` rejects
+  it. This proves that setting is actually doing something, not just documented intent.
+
+  Run **Login** first so `{{accessToken}}` is populated.
+}

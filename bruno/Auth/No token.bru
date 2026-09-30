@@ -1,0 +1,33 @@
+meta {
+  name: No token
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/courts
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Should not be created",
+    "address": "N/A",
+    "city": "HCM",
+    "district": "HCM_DISTRICT_10",
+    "latitude": 10.771505716410465,
+    "longitude": 106.66471299999887
+  }
+}
+
+assert {
+  res.status: eq 401
+  res.body.success: eq false
+  res.body.error.code: eq UNAUTHORIZED
+}
+
+docs {
+  No `Authorization` header at all against a protected route. `AuthGuard` throws
+  `UnauthorizedError` before the token is even parsed.
+}

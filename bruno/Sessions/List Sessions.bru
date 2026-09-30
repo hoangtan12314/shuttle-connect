@@ -1,0 +1,35 @@
+meta {
+  name: List Sessions
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/sessions
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+}
+
+docs {
+  ## Returns [] regardless of data -- this is a stub
+
+  `SessionRepositoryDynamoDB.listAll()` is literally `return []`. Browse-by-district
+  is not implemented: there is no repository query, no use case parameters, and no
+  `?city=&district=` query params on this route.
+
+  The index it will eventually use is live and correct as of the index redesign -- verify it
+  directly with the AWS CLI. Sessions and courts share GSI1 in separate partitions
+  (`SLOC#`/`CLOC#` prefixes), so this only returns sessions:
+
+      aws dynamodb query --table-name <table> --index-name GSI1 \
+        --key-condition-expression 'GSI1PK = :loc' \
+        --expression-attribute-values '{":loc":{"S":"SLOC#HCM#HCM_DISTRICT_10"}}'
+
+  That must return the session META item and **not** any REQUEST or COURT item -- requests carry
+  no GSI1 keys at all, and courts are filed under `CLOC#...` instead.
+}

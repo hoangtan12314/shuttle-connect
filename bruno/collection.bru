@@ -1,0 +1,35 @@
+headers {
+  content-type: application/json
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{idToken}}
+}
+
+docs {
+  # Shuttle Connect API
+
+  Every successful response is wrapped by `ResponseTransformInterceptor`:
+
+  ```json
+  { "success": true, "data": { ... } }
+  ```
+
+  Every error is shaped by `GlobalExceptionFilter`:
+
+  ```json
+  { "success": false, "error": { "code": "...", "statusCode": 400, "message": "..." } }
+  ```
+
+  So assertions read `res.body.data.*` on success and `res.body.error.code` on failure.
+
+  ## Running the flow
+
+  Requests are sequenced so `bru run` executes them in dependency order:
+  Courts -> Sessions -> Requests. Each create step writes its id into an
+  environment variable (`courtId`, `sessionId`) for the next one to use.
+}

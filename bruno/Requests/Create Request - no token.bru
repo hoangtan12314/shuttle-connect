@@ -1,0 +1,29 @@
+meta {
+  name: Create Request - no token
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/requests
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "sessionId": "{{sessionId}}"
+  }
+}
+
+assert {
+  res.status: eq 401
+  res.body.success: eq false
+  res.body.error.code: eq UNAUTHORIZED
+}
+
+docs {
+  Same purpose as **Sessions / Create Session - no token**: catches `RequestModule` losing
+  `imports: [AuthModule]`, which would otherwise return 201 with no failing assertion
+  anywhere else in the suite.
+}

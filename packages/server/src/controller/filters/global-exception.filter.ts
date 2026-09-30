@@ -3,7 +3,9 @@ import { Response } from 'express';
 import {
   ConflicError,
   DomainError,
+  ForbiddenError,
   NotFoundError,
+  UnauthorizedError,
   ValidationError,
 } from '../../domain/shared/errors';
 import { ApiErrorResponse, ErrorCode } from '@shuttle-connect/types';
@@ -14,10 +16,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let status: number, message: string, errorCode: string;
     const response = host.switchToHttp().getResponse<Response>();
 
-    if (exception instanceof NotFoundError) {
-      status = 404;
-    } else if (exception instanceof ValidationError) {
+    if (exception instanceof ValidationError) {
       status = 400;
+    } else if (exception instanceof UnauthorizedError) {
+      status = 401;
+    } else if (exception instanceof ForbiddenError) {
+      status = 403;
+    } else if (exception instanceof NotFoundError) {
+      status = 404;
     } else if (exception instanceof ConflicError) {
       status = 409;
     } else if (exception instanceof HttpException) {
@@ -45,7 +51,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         // from Express's body parser failing to JSON.parse the request body (e.g. a
         // trailing comma or unquoted key) — that raw parser text isn't something an API
         // consumer should have to interpret, so replace it with a clear, actionable message.
-        message = 'Request body could not be parsed as JSON. Check for syntax errors such as missing quotes around keys/strings or a trailing comma.';
+        message =
+          'Request body could not be parsed as JSON. Check for syntax errors such as missing quotes around keys/strings or a trailing comma.';
         errorCode = ErrorCode.MALFORMED_REQUEST_BODY;
       }
     } else {
@@ -55,13 +62,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     const body: ApiErrorResponse = {
-        success: false,
-        error: {
-            code: errorCode,
-            statusCode: status,
-            message
-        }
-    }
+      success: false,
+      error: {
+        code: errorCode,
+        statusCode: status,
+        message,
+      },
+    };
 
     response.status(status).json(body);
   }

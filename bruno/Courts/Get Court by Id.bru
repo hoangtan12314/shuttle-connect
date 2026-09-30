@@ -1,0 +1,30 @@
+meta {
+  name: Get Court by Id
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/courts/{{courtId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.id: eq {{courtId}}
+}
+
+tests {
+  test("round-trips city and district out of the stored location key", function () {
+    const court = res.getBody().data;
+    expect(court.city).to.equal("HCM");
+    expect(court.district).to.equal("HCM_DISTRICT_10");
+  });
+}
+
+docs {
+  Reads back the court created by the previous request. This is the cheapest check
+  that `toLocationKey` / `fromLocationKey` round-trip correctly through DynamoDB.
+}

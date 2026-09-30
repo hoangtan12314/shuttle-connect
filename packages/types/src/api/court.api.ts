@@ -13,10 +13,10 @@ export interface CourtItemResponse {
   id: string;
   name: string;
   address: string;
-  district: string;
-  city: string;
+  district: Area;
+  city: City;
   latitude: number;
   longitude: number;
-  createdAt: Date;
+  createdAt: string;
 }
 

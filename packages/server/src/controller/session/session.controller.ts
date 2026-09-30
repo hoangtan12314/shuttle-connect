@@ -6,6 +6,7 @@ import {
 } from '../../application/session';
 import { CreateSessionDto } from '../dtos';
 import { ValidateBodyPipe } from '../pipes';
+import { type AuthUser, CurrentUser, Public } from '../guard';
 
 @Controller('sessions')
 export class SessionController {
@@ -18,21 +19,27 @@ export class SessionController {
     private readonly getSessionByIdUseCase: GetSessionByIdUseCase,
   ) {}
 
+  @Public()
   @Get()
   async listSessions() {
-    return await this.listAllSessionsUseCase.execute();
+    const sessions = await this.listAllSessionsUseCase.execute();
+    return sessions;
   }
 
+  @Public()
   @Get(':id')
   async getSessionById(@Param('id') id: string) {
-    return this.getSessionByIdUseCase.execute(id);
+    const session = await this.getSessionByIdUseCase.execute(id);
+    return session;
   }
 
   @Post()
   async createSession(
+    @CurrentUser() user: AuthUser,
     @Body(new ValidateBodyPipe(CreateSessionDto)) createSessionDTO: CreateSessionDto,
   ) {
     // TODO: Implement Cognito Auth guard after finish testing the API flow
-    await this.createSessionUseCase.execute('1234', createSessionDTO);
+    const createdSessions = await this.createSessionUseCase.execute(user.id, createSessionDTO);
+    return createdSessions;
   }
 }

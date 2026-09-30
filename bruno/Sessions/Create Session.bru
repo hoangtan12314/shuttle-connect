@@ -1,0 +1,63 @@
+meta {
+  name: Create Session
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/sessions
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "courtId": "{{courtId}}",
+    "startTime": "2026-10-01T11:00:00.000Z",
+    "endTime": "2026-10-01T13:00:00.000Z",
+    "slotsRemaining": 8,
+    "slotsTotal": 8,
+    "priceMale": 60000,
+    "priceFemale": 40000,
+    "shuttleType": "YONEX_AS30",
+    "minSkillLevel": 3,
+    "description": "Friendly doubles, all welcome"
+  }
+}
+
+script:post-response {
+  const data = res.getBody() && res.getBody().data;
+  if (data && data.id) {
+    bru.setEnvVar("sessionId", data.id);
+  }
+  if (data && data.host && data.host.id) {
+    bru.setEnvVar("userId", data.host.id);
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("host is the authenticated user, not the old placeholder", function () {
+    const session = res.getBody().data;
+    expect(session.host.id).to.be.a("string");
+    expect(session.host.id).to.not.equal("1234");
+  });
+}
+
+docs {
+  Creates a session at the court from the Courts folder, as the user logged in by
+  **Auth / Login**. `SessionController.createSession` now returns the created session, so
+  `sessionId` and `userId` are captured automatically for later requests to use.
+
+  ## Field notes
+
+  - `courtId` must reference an existing court -- otherwise 404 `ENTITY_NOT_FOUND`.
+  - `startTime` / `endTime` are ISO-8601 strings (`@IsISO8601`), stored as epoch ms.
+  - `minSkillLevel` is the numeric `SkillLevel` enum: 1..5.
+  - `shuttleType` is a `ShuttleType` enum value, e.g. `YONEX_AS30`, `RSL_CLASSIC`, `OTHER`.
+  - `host.id` in the response is the internal user id resolved from the Cognito token by
+    `ResolveCurrentUserUseCase` -- no longer the hardcoded `'1234'`.
+}

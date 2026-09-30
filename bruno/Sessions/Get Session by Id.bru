@@ -1,0 +1,35 @@
+meta {
+  name: Get Session by Id
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/sessions/{{sessionId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+}
+
+tests {
+  test("carries the denormalized court, derived back from the location key", function () {
+    const session = res.getBody().data;
+    expect(session.court.city).to.equal("HCM");
+    expect(session.court.district).to.equal("HCM_DISTRICT_10");
+    expect(session.court.coordinates.lat).to.be.a("number");
+    expect(session.court.coordinates.lng).to.be.a("number");
+  });
+}
+
+docs {
+  Requires `sessionId` in the environment -- see the note on **Create Session**.
+
+  The `court` block here is denormalized onto the session item, not fetched from the
+  court. `city` / `district` are derived from the stored `location` attribute, and the
+  lat/lng field is `coordinates` (it was renamed from `location` so the name doesn't
+  collide with the GSI1 place key).
+}

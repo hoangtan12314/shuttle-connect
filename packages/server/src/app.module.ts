@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { SessionModule } from './infrastructure/ioc';
+import { SessionModule, CourtModule, RequestModule } from './infrastructure/ioc';
 
 @Module({
-  imports: [SessionModule],
+  imports: [SessionModule, CourtModule, RequestModule],
 })
 export class AppModule {}

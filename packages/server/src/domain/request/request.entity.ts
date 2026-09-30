@@ -2,16 +2,27 @@ import { RequestStatus } from '@shuttle-connect/types';
 
 export class Request {
   constructor(
-    private id: string,
     private userId: string,
+    private sessionId: string,
     private status: RequestStatus,
+    private createdAt: Date,
   ) {}
 
-  static create(props: { userId: string; title: string; description: string }): Request {
-    return new Request(crypto.randomUUID(), props.userId, RequestStatus.PENDING);
+  static create(props: { userId: string; sessionId: string }): Request {
+    return new Request(
+      props.userId,
+      props.sessionId,
+      RequestStatus.PENDING,
+      new Date(),
+    );
   }
 
-  static fromPersistence(props: { id: string; userId: string; status: RequestStatus }): Request {
-    return new Request(props.id, props.userId, props.status);
+  toJSON() {
+    return {
+      userId: this.userId,
+      sessionId: this.sessionId,
+      status: this.status,
+      createdAt: this.createdAt,
+    };
   }
 }

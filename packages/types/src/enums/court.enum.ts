@@ -1,7 +1,7 @@
 export enum City {
-  HO_CHI_MINH = "HO_CHI_MINH",
-  HANOI = "HANOI",
-  DA_NANG = "DA_NANG",
+  HO_CHI_MINH = "HCM",
+  HANOI = "HN",
+  DA_NANG = "DN",
 }
 
 export enum Area {

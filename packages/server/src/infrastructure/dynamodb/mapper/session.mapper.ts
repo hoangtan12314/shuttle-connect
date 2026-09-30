@@ -1,25 +1,38 @@
 import { SessionItemResponse, SessionOverview } from '@shuttle-connect/types';
 import { Session } from '../../../domain/session';
+import { fromLocationKey } from './location';
 
 export interface SessionRecord {
   PK: string;
   SK: string;
+  GSI1PK: string;
+  GSI1SK: number;
+  GSI2PK: string;
+  GSI2SK: string;
   court_id: string;
+  court_name: string;
+  lat: number;
+  lng: number;
+  location: string;
   user_id: string;
+  user_name: string;
   start_time: number;
   end_time: number;
-  slots_remaining: string;
-  slots_total: string;
+  slots_remaining: number;
+  slots_total: number;
   status: string;
-  price_male: string;
-  price_female: string;
+  price_male: number;
+  price_female: number;
   shuttle_type: string;
-  min_skill_level: string;
+  min_skill_level: number;
   description: string;
   created_at: number;
 }
 
 export class SessionMapper {
+  // GSI1PK/GSI1SK/GSI2PK/GSI2SK are NOT written here -- they need the court (for city/district)
+  // and the host id, neither of which this mapper has on its own. See
+  // SessionRepositoryDynamoDB.create, which builds them via index-keys.ts alongside `location`.
   static toPersistence(session: Session): Record<string, any> {
     const data = session.toJSON();
     return {
@@ -42,6 +55,8 @@ export class SessionMapper {
   }
 
   static toResponse(item: Record<string, any>): SessionItemResponse {
+    const { city, district } = fromLocationKey(item.location);
+
     return {
       id: item.PK.replace('SESSION#', ''),
       status: item.status,
@@ -58,7 +73,9 @@ export class SessionMapper {
       court: {
         id: item.court_id,
         name: item.court_name,
-        location: { lat: item.lat, lng: item.lng },
+        coordinates: { lat: item.lat, lng: item.lng },
+        district,
+        city,
       },
       host: {
         id: item.user_id,
@@ -78,7 +95,7 @@ export class SessionMapper {
       court: {
         id: item.court_id,
         name: item.court_name,
-        location: { lat: item.lat, lng: item.lng },
+        coordinates: { lat: item.lat, lng: item.lng },
       },
     };
   }

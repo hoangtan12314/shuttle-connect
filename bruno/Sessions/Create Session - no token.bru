@@ -1,0 +1,38 @@
+meta {
+  name: Create Session - no token
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/sessions
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "courtId": "{{courtId}}",
+    "startTime": "2026-10-01T11:00:00.000Z",
+    "endTime": "2026-10-01T13:00:00.000Z",
+    "slotsRemaining": 8,
+    "slotsTotal": 8,
+    "priceMale": 60000,
+    "priceFemale": 40000,
+    "shuttleType": "YONEX_AS30",
+    "minSkillLevel": 3,
+    "description": "Should not be created"
+  }
+}
+
+assert {
+  res.status: eq 401
+  res.body.success: eq false
+  res.body.error.code: eq UNAUTHORIZED
+}
+
+docs {
+  Guards against the silent-failure mode where `SessionModule` loses its
+  `imports: [AuthModule]` -- without it, this would return 201 instead of 401, with
+  nothing else in the suite noticing.
+}

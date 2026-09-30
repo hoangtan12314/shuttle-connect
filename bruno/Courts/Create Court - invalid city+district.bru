@@ -1,0 +1,37 @@
+meta {
+  name: Create Court - invalid city+district
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/courts
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Mismatched Court",
+    "address": "Somewhere that does not add up",
+    "city": "HN",
+    "district": "HCM_DISTRICT_10",
+    "latitude": 21.028511,
+    "longitude": 105.804817
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.success: eq false
+  res.body.error.code: eq INVALID_CITY_DISTRICT
+}
+
+docs {
+  A Hanoi city with a Ho Chi Minh district must be rejected by `Court.create`'s
+  `CITY_AREAS` check before anything is written.
+
+  This matters more than it looks: `location` is the GSI1 partition key, so an
+  unvalidated pair would persist `"HN#HCM_DISTRICT_10"` -- a partition no browse
+  query will ever address, making the court invisible with no error anywhere.
+}

@@ -5,5 +5,5 @@ export const TABLE_NAME = Symbol('TableName');
 
 export const TableNameProvider = {
   provide: TABLE_NAME,
-  useFactory: () => Resource['shuttle-connect'].name,
+  useValue: Resource['shuttle-connect'].name,
 };
