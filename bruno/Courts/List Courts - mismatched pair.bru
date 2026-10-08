@@ -1,0 +1,32 @@
+meta {
+  name: List Courts - mismatched pair
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/courts?city=HN&area=HCM_DISTRICT_10
+  body: none
+  auth: none
+}
+
+params:query {
+  city: HN
+  area: HCM_DISTRICT_10
+}
+
+assert {
+  res.status: eq 400
+  res.body.success: eq false
+  res.body.error.code: eq INVALID_CITY_DISTRICT
+}
+
+docs {
+  **Currently fails -- this is a real gap, not a stub.** `GET /courts` is implemented, but
+  `ListCourtsByDistrictUseCase` never checks the city/area pair against `CITY_AREAS` the
+  way `Court.create` does on the write side (see **Create Court - invalid city+district**).
+  Today this returns `200` with `[]` instead of `400 INVALID_CITY_DISTRICT` -- a query for
+  an impossible pair looks identical to "no courts in that district yet", which is the
+  wrong signal to send a client. This assertion targets the correct behavior and will pass
+  once that check is added to the use case.
+}

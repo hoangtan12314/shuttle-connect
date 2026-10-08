@@ -3,6 +3,12 @@
 [Bruno](https://www.usebruno.com/) collection for the Shuttle Connect API. Requests are
 plain-text `.bru` files, so they diff and review like code.
 
+**Several routes in here don't exist on the server yet** -- see "What's not implemented
+yet" below. Those requests are written against the *planned* contract
+(`check-for-the-flow-keen-flask.md`) on purpose, so running the collection doubles as a
+checklist: each one starts failing with a connection/404 error and starts passing the
+moment the matching endpoint is built correctly.
+
 ## Setup
 
 Open the desktop app and point it at this folder (**Open Collection** -> `bruno/`), or use
@@ -30,19 +36,24 @@ For `local`, note the DynamoDB and Cognito providers resolve `Resource[...]`, so
 npx sst shell -- pnpm run dev:server
 ```
 
-## Authentication
+## Authentication -- two users
 
-`AuthGuard` is live in all three Lambdas. Everything except the three GET routes
-(`GET /sessions`, `GET /sessions/:id`, `GET /courts/:id`, all `@Public()`) needs a valid
-Cognito ID token.
+`AuthGuard` is live in all three Lambdas. Everything except the public GET routes
+(`GET /sessions`, `GET /sessions/:id`, `GET /courts/:id`) needs a valid Cognito ID token.
 
-The collection sends it automatically: `collection.bru` sets `auth { mode: bearer }` with
-`token: {{idToken}}`, and every protected request has `auth: inherit`. You only have to
-populate `{{idToken}}`, which the **Auth** folder does for you.
+This collection uses **two** test users, because once D4 (`CannotJoinOwnSessionError`) is
+built, a host can no longer join their own session -- every "someone joins a session"
+request needs a *different* person than whoever hosted it:
+
+| User | Role | Token variable | How requests use it |
+|---|---|---|---|
+| `test@example.com` ("the host") | creates courts, sessions; approves/rejects requests | `{{idToken}}` | the collection's **default** -- `auth: inherit` resolves to this |
+| `player@example.com` ("the player") | joins sessions, views their own bookings | `{{idToken2}}` | set explicitly with `auth: bearer` + `auth:bearer { token: {{idToken2}} }` on each request that needs it |
 
 ### One-time setup
 
-1. Create a test user in the deployed pool (requires `name` -- it's a required attribute):
+1. Create **both** test users in the deployed pool (`name` is required -- it's a required
+   Cognito attribute):
    ```bash
    aws cognito-idp admin-create-user --user-pool-id <userPoolId> --username test@example.com \
      --user-attributes Name=email,Value=test@example.com Name=email_verified,Value=true \
@@ -50,20 +61,30 @@ populate `{{idToken}}`, which the **Auth** folder does for you.
      --message-action SUPPRESS
    aws cognito-idp admin-set-user-password --user-pool-id <userPoolId> \
      --username test@example.com --password 'Test1234!' --permanent
+
+   aws cognito-idp admin-create-user --user-pool-id <userPoolId> --username player@example.com \
+     --user-attributes Name=email,Value=player@example.com Name=email_verified,Value=true \
+                        Name=name,Value="Test Player" \
+     --message-action SUPPRESS
+   aws cognito-idp admin-set-user-password --user-pool-id <userPoolId> \
+     --username player@example.com --password 'Test1234!' --permanent
    ```
    Get `userPoolId` from the `sst dev`/`sst deploy` output.
-2. Fill in `cognitoClientId`, `testEmail` and `awsRegion` in `environments/dev.bru`.
-3. Create `bruno/.env` (git-ignored) with `TEST_PASSWORD=Test1234!` -- see the file already
-   there for the exact format. The password never enters a committed `.bru` file.
+2. Fill in `cognitoClientId`, `testEmail`, `testEmail2` and `awsRegion` in
+   `environments/dev.bru`.
+3. Create `bruno/.env` (git-ignored) with `TEST_PASSWORD=Test1234!` -- one password for
+   both users, see the file already there for the exact format. The password never enters
+   a committed `.bru` file.
 
 ### Every run
 
-Run **Auth / Login** first (or `bru run` picks it up automatically -- it's `seq: 0`, before
-every other folder). It logs in directly against Cognito's public `InitiateAuth` API and
-saves `idToken` (and `accessToken`, used only by one negative test) as environment variables.
+Run **Auth / Login** and **Auth / Login as Player** first (or `bru run` picks both up
+automatically -- `seq: 0`, before every other folder). They log in directly against
+Cognito's public `InitiateAuth` API and save `idToken`/`idToken2` (and `accessToken`, used
+only by one negative test) as environment variables.
 
-**The ID token lasts 1 hour.** If protected requests start failing with an unexpected 401,
-re-run **Auth / Login**.
+**ID tokens last 1 hour.** If protected requests start failing with an unexpected 401,
+re-run both Logins.
 
 `USER_PASSWORD_AUTH` (what Login uses) is only enabled on non-production stages --
 see `explicitAuthFlows` in `infra/auth.ts`.
@@ -73,13 +94,36 @@ see `explicitAuthFlows` in `infra/auth.ts`.
 Folders run in dependency order:
 
 ```
-Auth      ->  Login               sets {{idToken}}, {{accessToken}}
-Courts    ->  Create Court        sets {{courtId}}
-Sessions  ->  Create Session      needs {{courtId}}; sets {{sessionId}}, {{userId}}
-Requests  ->  Create Request      needs {{sessionId}}; asserts its userId matches {{userId}}
+Auth            ->  Login, Login as Player     sets {{idToken}}, {{idToken2}}
+Courts          ->  Create Court               sets {{courtId}}
+Sessions        ->  Create Session             needs {{courtId}}; sets {{sessionId}}, {{userId}}
+Requests        ->  Create Request (player)    needs {{sessionId}}; sets {{playerId}}
+Host Decisions  ->  Approve (host)              needs {{sessionId}}, {{playerId}}
+User            ->  Get/Update Profile          the host's own profile
 ```
 
-## What the negative cases pin down
+## What's not implemented yet
+
+These requests are written against routes that don't exist on the server yet -- each
+one's `docs` block says what's expected once it's built, and most point back at the plan.
+
+| Folder | Request | Route |
+|---|---|---|
+| Sessions | `List Sessions` | `GET /sessions?city=&district=` (currently `listAll()` stub, returns `[]`) |
+| Sessions | `My Hosted Sessions` | `GET /sessions/mine` |
+| Courts | `List Courts by Location`, `- mismatched pair` | `GET /courts?city=&district=` |
+| Requests | `Join Own Session` | 400 check inside `POST /requests` (D4) |
+| Requests | `Create Request - duplicate` | 409 fix inside `POST /requests` (D3; currently 500) |
+| Requests | `My Requests` | `GET /requests/mine` |
+| User | `Get Profile`, `Update Profile` | `GET /users/me`, `PATCH /users/me` -- no controller or Lambda exist yet |
+| Host Decisions | *(whole folder)* | `GET /sessions/:id/requests`, `PATCH /sessions/:id/requests/:userId` |
+
+`GSI1`/`GSI2` are already populated correctly by every create (index redesign) -- these
+are pure read/write additions on top of data that's already shaped right. Verify GSI1
+directly with the AWS CLI snippet in **List Sessions**' docs if you want to check before
+the route exists.
+
+## What the already-working negative cases pin down
 
 | Request | Asserts |
 |---|---|
@@ -89,7 +133,6 @@ Requests  ->  Create Request      needs {{sessionId}}; asserts its userId matche
 | `Create Court - invalid city+district` | 400 `INVALID_CITY_DISTRICT` -- a bad pair can't persist an unreachable `location` partition |
 | `Get Court by Id - not found` | 404 `ENTITY_NOT_FOUND` |
 | `Create Request - unknown session` | 404 before the request repository is touched |
-| `Create Request - duplicate` | **500 today** -- the condition check works, but `ConditionalCheckFailedException` isn't a `DomainError`, so it isn't mapped to 409. Asserting current behaviour on purpose; see the request's docs. |
 
 ## Response envelope
 
@@ -100,12 +143,3 @@ Success is wrapped by `ResponseTransformInterceptor`, errors shaped by
 { "success": true,  "data": { } }
 { "success": false, "error": { "code": "...", "statusCode": 400, "message": "..." } }
 ```
-
-## Not covered
-
-Browse-by-district, listing courts, "my hosted sessions" and "my requests". `GET /sessions`
-returns `[]` unconditionally -- `SessionRepositoryDynamoDB.listAll()` is a stub and there are
-no `?city=&district=` params yet, no `GET /courts`, and no `GET /sessions/mine` /
-`GET /requests/mine`. `GSI1` and `GSI2` are populated and correct as of the index redesign
-(see `documentation/DATABASE_DESIGN.md`); verify GSI1 with the AWS CLI snippet in the
-**List Sessions** docs.

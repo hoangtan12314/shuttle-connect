@@ -42,3 +42,13 @@ export const requestFunction = new sst.aws.Function("request-handler", {
   },
   nodejs: externalEsbuildConfig,
 });
+
+export const userFunction = new sst.aws.Function("user-handler", {
+  handler:
+    "packages/server/src/infrastructure/function/lambda/user.lambda.handler",
+  link: [table, userPool, userPoolClient],
+  logging: {
+    retention: "1 month",
+  },
+  nodejs: externalEsbuildConfig,
+});

@@ -1,0 +1,39 @@
+meta {
+  name: Get Profile
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/users/me
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  forwardAuthorizationHeader: false
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+}
+
+tests {
+  test("id has no stray USER prefix (D2)", function () {
+    const user = res.getBody().data;
+    expect(user.id).to.not.match(/^USER/);
+    bru.setEnvVar("userId", user.id);
+  });
+}
+
+docs {
+  Implemented: `UserController`/`GetProfileUseCase`, its own Lambda
+  (`user.lambda.ts`/`user-handler`) and `infra/api.ts` routes.
+
+  Also the regression check for D2: `UserMapper.toResponse` used to do
+  `item.PK.replace('#', '')`, which only deletes the `#` character and leaves
+  `"USERabc..."` instead of `"abc..."`. If that typo comes back, this assertion catches it.
+}

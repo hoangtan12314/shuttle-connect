@@ -1,0 +1,30 @@
+meta {
+  name: List Session Requests (not host)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/sessions/{{sessionId}}/requests
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken2}}
+}
+
+assert {
+  res.status: eq 403
+  res.body.success: eq false
+  res.body.error.code: eq FORBIDDEN
+}
+
+docs {
+  Implemented, blocked by the same `SessionModule` DI gap as **List Session Requests
+  (host)** -- see its docs. Same route, run as the **player** instead. The player
+  requested to join this session but doesn't host it, so they must not be able to see the
+  list -- `GetRequestsUseCase` checks `session.host.id === userId` and throws
+  `ForbiddenError` (403) before ever calling the request repository, so this one doesn't
+  depend on the missing `return` bug either.
+}

@@ -1,4 +1,4 @@
-import { CourtItemResponse } from '@shuttle-connect/types';
+import { CourtItemOverview, CourtItemResponse } from '@shuttle-connect/types';
 import { Court } from '../../../domain/court';
 import { fromLocationKey, toLocationKey } from './location';
 import { courtGsi1 } from './index-keys';
@@ -46,6 +46,14 @@ export class CourtMapper {
       latitude: record.latitude,
       longitude: record.longitude,
       createdAt: new Date(record.created_at).toISOString(),
+    };
+  }
+
+  static toOverview(record: Record<string, any>): CourtItemOverview {
+    return {
+      id: record.PK.replace('COURT#', ''),
+      name: record.name,
+      address: record.address,
     };
   }
 }

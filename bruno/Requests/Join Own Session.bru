@@ -1,0 +1,35 @@
+meta {
+  name: Join Own Session
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/requests
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "sessionId": "{{sessionId}}"
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.success: eq false
+  res.body.error.code: eq CANNOT_JOIN_OWN_SESSION
+}
+
+docs {
+  Implemented (half of D4). Runs with `auth: inherit` -- the collection's default token,
+  i.e. the **host** -- against the session they themselves created.
+  `CreateRequestUseCase` checks `userId === session.host.id` right after loading the
+  session and throws `CannotJoinOwnSessionError` before touching the request repository.
+
+  **Known gap -- the other half of D4 is still missing:** the same use case never checks
+  `session.status !== OPEN`, so joining a `FULL` or `CANCELLED` session isn't rejected
+  (`SessionNotOpenError`). No Bruno test for that yet since there's no easy way to drive a
+  session to `FULL`/`CANCELLED` in this collection's current flow.
+}

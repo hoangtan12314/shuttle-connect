@@ -16,6 +16,8 @@ export const courtGsi1 = (city: City, district: Area, createdAt: number) => ({
   GSI1SK: createdAt,
 });
 
+export const courtLocationKey = (city: City, district: Area): string => `CLOC#${city}#${district}`;
+
 export const sessionGsi2 = (hostId: string, startTime: number) => ({
   GSI2PK: `USER#${hostId}`,
   GSI2SK: `SESSION#${startTime}`,

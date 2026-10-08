@@ -5,9 +5,14 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/sessions
+  url: {{baseUrl}}/sessions?city=HCM&area=HCM_DISTRICT_10
   body: none
   auth: none
+}
+
+params:query {
+  city: HCM
+  area: HCM_DISTRICT_10
 }
 
 assert {
@@ -15,21 +20,27 @@ assert {
   res.body.success: eq true
 }
 
+tests {
+  test("includes the session created in this run", function () {
+    const sessions = res.getBody().data;
+    expect(sessions.map(s => s.id)).to.include(bru.getEnvVar("sessionId"));
+  });
+}
+
 docs {
-  ## Returns [] regardless of data -- this is a stub
+  Implemented: `ListSessionsByDistrictUseCase` + `ListSessionsByDistrictDto`, `GSI1PK =
+  SLOC#<city>#<area> AND GSI1SK >= :from` (defaults `from` to now when omitted).
 
-  `SessionRepositoryDynamoDB.listAll()` is literally `return []`. Browse-by-district
-  is not implemented: there is no repository query, no use case parameters, and no
-  `?city=&district=` query params on this route.
+  **Known gap:** like the courts list, the city/area pair is never checked against
+  `CITY_AREAS` -- a mismatched pair returns `200` with `[]` instead of a 400.
 
-  The index it will eventually use is live and correct as of the index redesign -- verify it
-  directly with the AWS CLI. Sessions and courts share GSI1 in separate partitions
-  (`SLOC#`/`CLOC#` prefixes), so this only returns sessions:
+  If this ever returns an empty list unexpectedly, verify GSI1 directly before suspecting
+  the route:
 
       aws dynamodb query --table-name <table> --index-name GSI1 \
         --key-condition-expression 'GSI1PK = :loc' \
         --expression-attribute-values '{":loc":{"S":"SLOC#HCM#HCM_DISTRICT_10"}}'
 
-  That must return the session META item and **not** any REQUEST or COURT item -- requests carry
-  no GSI1 keys at all, and courts are filed under `CLOC#...` instead.
+  That must return the session META item and **not** any REQUEST or COURT item -- requests
+  carry no GSI1 keys at all, and courts are filed under `CLOC#...` instead.
 }

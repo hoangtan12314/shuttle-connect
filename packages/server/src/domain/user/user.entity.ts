@@ -24,9 +24,7 @@ export class User {
   ) {}
 
   static create(props: UserProps): User {
-    if (props.fullName.length < MIN_NAME_LENGTH || props.fullName.length > MAX_NAME_LENGTH) {
-      throw new InvalidFieldLengthError('fullName', MIN_NAME_LENGTH, MAX_NAME_LENGTH);
-    }
+    User.assertValidFullName(props.fullName);
 
     return new User(
       randomUUID(),
@@ -38,8 +36,10 @@ export class User {
     );
   }
 
-  updateSkillLevel(newSkillLevel: SkillLevel) {
-    this.skillLevel = newSkillLevel;
+  static assertValidFullName(fullName: string): void {
+    if (fullName.length < MIN_NAME_LENGTH || fullName.length > MAX_NAME_LENGTH) {
+      throw new InvalidFieldLengthError('fullName', MIN_NAME_LENGTH, MAX_NAME_LENGTH);
+    }
   }
 
   toJSON() {

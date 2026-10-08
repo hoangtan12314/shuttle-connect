@@ -1,10 +1,11 @@
-import { CourtItemResponse, SessionItemResponse, SessionOverview } from '@shuttle-connect/types';
+import { Area, City, CourtItemResponse, SessionItemResponse, SessionOverview, UserItemResponse } from '@shuttle-connect/types';
 import { Session } from './session.entity';
 
 export interface SessionRepository {
-  listAll(): Promise<SessionOverview[]>;
+  listSessionsByDistrict(city: City, area: Area, startTime?: Date): Promise<SessionOverview[]>;
   findById(id: string): Promise<SessionItemResponse | null>;
-  create(session: Session, court: CourtItemResponse): Promise<void>;
+  getByUserId(userId: string): Promise<SessionOverview[]>
+  create(session: Session, court: CourtItemResponse, host: UserItemResponse): Promise<void>;
 }
 
 export const SESSION_REPOSITORY = Symbol('SessionRepository');

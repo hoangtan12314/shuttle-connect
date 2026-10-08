@@ -1,6 +1,6 @@
-import { Body, Controller, Inject, Post } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Post } from '@nestjs/common';
 import { CreateRequestDto } from '../dtos';
-import { CreateRequestUseCase } from '../../application/request';
+import { CreateRequestUseCase, GetRequestsByUserIdUseCase } from '../../application/request';
 import { ValidateBodyPipe } from '../pipes';
 import { type AuthUser, CurrentUser } from '../guard';
 
@@ -9,7 +9,15 @@ export class RequestController {
   constructor(
     @Inject(CreateRequestUseCase)
     private readonly createRequestUseCase: CreateRequestUseCase,
+    @Inject(GetRequestsByUserIdUseCase)
+    private readonly getRequestsByUserIdUseCase: GetRequestsByUserIdUseCase,
   ) {}
+
+  @Get('mine')
+  async getMineRequest(@CurrentUser() user: AuthUser) {
+    const requests = await this.getRequestsByUserIdUseCase.execute(user.id);
+    return requests;
+  }
 
   @Post()
   async createRequest(

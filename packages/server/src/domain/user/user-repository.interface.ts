@@ -1,4 +1,4 @@
-import { UserItemResponse } from '@shuttle-connect/types';
+import { SkillLevel, UserItemResponse } from '@shuttle-connect/types';
 import { User } from './user.entity';
 
 export interface FindByAuthIdOptions {
@@ -8,9 +8,16 @@ export interface FindByAuthIdOptions {
 }
 
 export interface UserRepository {
-  findByAuthId(externalAuthId: string, options?: FindByAuthIdOptions): Promise<{ id: string } | null>; // AUTH# -> USER#
+  findByAuthId(
+    externalAuthId: string,
+    options?: FindByAuthIdOptions,
+  ): Promise<{ id: string } | null>; // AUTH# -> USER#
   findById(id: string): Promise<UserItemResponse | null>; // direct GetItem
   create(user: User): Promise<void>; // TransactWrite both items
+  update(
+    id: string,
+    fields: { fullName?: string; skillLevel?: SkillLevel },
+  ): Promise<UserItemResponse>;
 }
 
 export const USER_REPOSITORY = Symbol('UserRepository');

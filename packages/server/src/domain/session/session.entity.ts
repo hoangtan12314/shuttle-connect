@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { SessionStatus, SkillLevel } from '@shuttle-connect/types';
 import { InvalidSlotValuesError, SessionFullError, SessionNotOpenError } from './session.error';
-import { InvalidFieldLengthError } from '../shared/errors';
+import { InvalidFieldLengthError, InvalidSessionTimeError } from '../shared/errors';
 
 export interface SessionProps {
   courtId: string;
@@ -50,6 +50,8 @@ export class Session {
       throw new InvalidFieldLengthError('description', 0, MAX_DESCRIPTION_LENGTH);
     }
 
+    this.validateTimeSlot(props.startTime, props.endTime);
+
     return new Session(
       randomUUID(),
       props.courtId,
@@ -97,6 +99,16 @@ export class Session {
     }
 
     this.slotsRemaining -= 1;
+  }
+
+  static validateTimeSlot(startTime: Date, endTime: Date) {
+    if (startTime >= endTime) {
+      throw new InvalidSessionTimeError(startTime, endTime);
+    }
+
+    if (startTime < new Date()) {
+      throw new InvalidSessionTimeError(startTime, endTime);
+    }
   }
 
   toJSON() {

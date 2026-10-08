@@ -9,3 +9,8 @@ export * from './invalid-city-district.error';
 export * from './invalid-email.error';
 export * from './unauthorized.error';
 export * from './forbidden.error';
+export * from './duplicate-request.error';
+export * from './concurrent-update.error';
+export * from './cannot-join-own-session.error';
+export * from './invalid-session-time.error';
+export * from './request-already-decided.error';

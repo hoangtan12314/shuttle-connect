@@ -1,0 +1,51 @@
+meta {
+  name: Create Session - ends before start
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/sessions
+  body: json
+  auth: inherit
+}
+
+script:pre-request {
+  const start = new Date(Date.now() + 24 * 60 * 60 * 1000); // tomorrow
+  const end = new Date(start.getTime() - 60 * 60 * 1000); // an hour BEFORE start
+  bru.setVar("dynamicStartTime", start.toISOString());
+  bru.setVar("dynamicEndTime", end.toISOString());
+}
+
+body:json {
+  {
+    "courtId": "{{courtId}}",
+    "startTime": "{{dynamicStartTime}}",
+    "endTime": "{{dynamicEndTime}}",
+    "slotsRemaining": 8,
+    "slotsTotal": 8,
+    "priceMale": 60000,
+    "priceFemale": 40000,
+    "shuttleType": "YONEX_AS30",
+    "minSkillLevel": 3,
+    "description": "Invalid time window"
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.success: eq false
+  res.body.error.code: eq INVALID_SESSION_TIME
+}
+
+docs {
+  D5: `endTime` is an hour before `startTime`. `Session.validateTimeSlot` must reject
+  this via `InvalidSessionTimeError` before anything is written.
+
+  **Known gap -- a narrower case this test doesn't cover:** `validateTimeSlot` currently
+  checks `startTime > endTime`, but the plan calls for rejecting `startTime >= endTime`.
+  A zero-duration session (`startTime === endTime`) would currently slip through. Not
+  tested here since Bruno can't easily construct two JS `Date`s that are bit-for-bit
+  identical by the time they're serialized without extra scripting -- worth a manual check
+  if you want to confirm the `>=` fix once it's made.
+}

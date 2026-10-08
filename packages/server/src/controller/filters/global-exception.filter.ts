@@ -1,7 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
 import { Response } from 'express';
 import {
-  ConflicError,
+  ConflictError,
   DomainError,
   ForbiddenError,
   NotFoundError,
@@ -24,7 +24,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = 403;
     } else if (exception instanceof NotFoundError) {
       status = 404;
-    } else if (exception instanceof ConflicError) {
+    } else if (exception instanceof ConflictError) {
       status = 409;
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();

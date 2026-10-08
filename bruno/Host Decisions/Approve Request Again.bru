@@ -1,0 +1,34 @@
+meta {
+  name: Approve Request Again
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/sessions/{{sessionId}}/requests/{{playerId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "status": "APPROVED"
+  }
+}
+
+assert {
+  res.status: eq 409
+  res.body.success: eq false
+  res.body.error.code: eq REQUEST_ALREADY_DECIDED
+}
+
+docs {
+  Implemented, blocked by the same `SessionModule` DI gap -- see **List Session Requests
+  (host)**'s docs. Same route as **Approve Request**, run again. The request is no longer
+  `PENDING` (the first approval already moved it to `APPROVED`), so `DecideRequestUseCase`
+  catches this with its own explicit `getBySessionAndUser` + status check *before*
+  attempting another write -- a second run must *not* decrement `slots_remaining` again,
+  which is exactly what skipping that check would risk.
+
+  `RequestAlreadyDecidedError extends ConflictError` -> 409.
+}

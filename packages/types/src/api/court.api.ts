@@ -9,6 +9,11 @@ export interface CreateCourtInput {
   longitude: number;
 }
 
+export interface ListCourtsByDistrictInput {
+  city: City;
+  area: Area;
+}
+
 export interface CourtItemResponse {
   id: string;
   name: string;
@@ -18,5 +23,11 @@ export interface CourtItemResponse {
   latitude: number;
   longitude: number;
   createdAt: string;
+}
+
+export interface CourtItemOverview {
+  id: string;
+  name: string;
+  address: string;
 }
 

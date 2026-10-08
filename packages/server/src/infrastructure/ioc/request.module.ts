@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
 import { RequestController } from '../../controller/request';
 import {
-  CreateRequestUseCase
+  CreateRequestUseCase,
+  DecideRequestUseCase,
+  GetRequestsByUserIdUseCase,
+  GetRequestsUseCase,
 } from '../../application/request';
 import { REQUEST_REPOSITORY } from '../../domain/request';
 import { SESSION_REPOSITORY } from '../../domain/session';
@@ -14,6 +17,7 @@ import { AuthModule } from './auth.module';
   controllers: [RequestController],
   providers: [
     CreateRequestUseCase,
+    GetRequestsByUserIdUseCase,
     DynamoDbClientProvider,
     TableNameProvider,
     { provide: REQUEST_REPOSITORY, useClass: RequestRepositoryDynamoDB },

@@ -7,7 +7,11 @@ meta {
 post {
   url: {{baseUrl}}/requests
   body: json
-  auth: inherit
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken2}}
 }
 
 body:json {
@@ -17,22 +21,24 @@ body:json {
 }
 
 assert {
-  res.status: eq 500
+  res.status: eq 409
+  res.body.success: eq false
+  res.body.error.code: eq DUPLICATE_REQUEST
 }
 
 docs {
-  ## This asserts current behaviour, not desired behaviour
+  Implemented (D3). Run **Create Request** first (as the player), then this, as the
+  **same player** -- a duplicate only exists if it's the same `PK`+`SK`
+  (`SESSION#<id>` / `REQUEST#USER#<playerId>`), so this must use `{{idToken2}}`, not the
+  host's token.
 
-  Run **Create Request** first, then this. The repository writes with
-  `ConditionExpression: attribute_not_exists(PK) AND attribute_not_exists(SK)`, so the
-  second write is correctly rejected by DynamoDB -- the row is safe, an APPROVED
-  request can't be silently reset to PENDING.
+  `request.repository.ts`'s `create()` catches `ConditionalCheckFailedException` from the
+  `attribute_not_exists(PK) AND attribute_not_exists(SK)` write and throws
+  `DuplicateRequestError` -> 409. This specific path works correctly.
 
-  But `ConditionalCheckFailedException` comes from the AWS SDK and is not a
-  `DomainError`, so `GlobalExceptionFilter` falls through to **500 SERVER_ERROR**.
-  It should be a 409.
-
-  The fix is a `DuplicateRequestError extends ConflicError` plus a new `ErrorCode`,
-  caught in the repository and rethrown. When that lands, change this assertion to
-  409 / `DUPLICATE_REQUEST`.
+  **Known gap elsewhere in the same `catch` block:** it only handles
+  `ConditionalCheckFailedException` -- any *other* error (throttling, a network blip) is
+  silently swallowed with no `throw`, so `create()` would resolve successfully even though
+  the write actually failed. Doesn't affect this test (a real duplicate always throws
+  `ConditionalCheckFailedException`), but worth fixing with an `else throw err;`.
 }

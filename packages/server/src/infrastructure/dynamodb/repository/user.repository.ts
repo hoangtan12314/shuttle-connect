@@ -3,11 +3,14 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
   TransactWriteCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { UserItemResponse } from '@shuttle-connect/types';
+import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
+import { SkillLevel, UserItemResponse } from '@shuttle-connect/types';
 import { type FindByAuthIdOptions, User, UserRepository } from '../../../domain/user';
 import { DYNAMODB_CLIENT, TABLE_NAME } from '../provider';
 import { UserMapper } from '../mapper';
+import { EntityNotFoundError } from '../../../domain/shared/errors';
 
 @Injectable()
 export class UserRepositoryDynamoDB implements UserRepository {
@@ -67,5 +70,48 @@ export class UserRepositoryDynamoDB implements UserRepository {
         ],
       }),
     );
+  }
+
+  async update(
+    id: string,
+    fields: { fullName?: string; skillLevel?: SkillLevel },
+  ): Promise<UserItemResponse> {
+    const sets: string[] = [];
+    const values: Record<string, any> = {};
+
+    if (fields.fullName !== undefined) {
+      sets.push('full_name = :fullName');
+      values[':fullName'] = fields.fullName;
+    }
+    if (fields.skillLevel !== undefined) {
+      sets.push('skill_level = :skillLevel');
+      values[':skillLevel'] = fields.skillLevel;
+    }
+
+    if (sets.length === 0) {
+      const current = await this.findById(id);
+      if (!current) throw new EntityNotFoundError('User');
+      return current;
+    }
+
+    try {
+      const result = await this.client.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { PK: `USER#${id}`, SK: 'META' },
+          UpdateExpression: `SET ${sets.join(', ')}`,
+          ExpressionAttributeValues: values,
+          ConditionExpression: 'attribute_exists(PK)',
+          ReturnValues: 'ALL_NEW',
+        }),
+      );
+
+      return UserMapper.toResponse(result.Attributes!);
+    } catch (err) {
+      if (err instanceof ConditionalCheckFailedException) {
+        throw new EntityNotFoundError('User');
+      }
+      throw err;
+    }
   }
 }

@@ -1,5 +1,11 @@
 import { Area, City, ShuttleType, SkillLevel, SessionStatus } from "../enums";
 
+export interface ListSessionsByDistrictInput {
+  startTime?: string;
+  city: City;
+  area: Area;
+}
+
 export interface CreateSessionInput {
   courtId: string;
   startTime: string;
@@ -39,7 +45,7 @@ export interface SessionItemResponse {
   };
 }
 
-export interface SessionOverview{
+export interface SessionOverview {
   id: string;
   status: SessionStatus;
   startTime: string;

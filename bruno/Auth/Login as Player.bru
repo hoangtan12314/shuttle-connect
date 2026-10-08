@@ -1,0 +1,61 @@
+meta {
+  name: Login as Player
+  type: http
+  seq: 6
+}
+
+post {
+  url: https://cognito-idp.{{awsRegion}}.amazonaws.com/
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/x-amz-json-1.1
+  x-amz-target: AWSCognitoIdentityProviderService.InitiateAuth
+}
+
+body:json {
+  {
+    "AuthFlow": "USER_PASSWORD_AUTH",
+    "ClientId": "{{cognitoClientId}}",
+    "AuthParameters": {
+      "USERNAME": "{{testEmail2}}",
+      "PASSWORD": "{{process.env.TEST_PASSWORD}}"
+    }
+  }
+}
+
+script:post-response {
+  const result = res.getBody().AuthenticationResult;
+  bru.setEnvVar("idToken2", result.IdToken);
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Logs in a **second** test user ("the player"), separate from the host logged in by
+  **Login**. Needed once `CreateRequestUseCase` rejects a host joining their own session
+  (`CannotJoinOwnSessionError`) -- every "someone joins a session" test from here on has to
+  be a different person than whoever hosted it.
+
+  ## One-time setup
+
+  Same two commands as **Login**'s docs, with a different email:
+  ```bash
+  aws cognito-idp admin-create-user --user-pool-id <userPoolId> --username player@example.com \
+    --user-attributes Name=email,Value=player@example.com Name=email_verified,Value=true \
+                       Name=name,Value="Test Player" \
+    --message-action SUPPRESS
+  aws cognito-idp admin-set-user-password --user-pool-id <userPoolId> \
+    --username player@example.com --password 'Test1234!' --permanent
+  ```
+  Fill in `testEmail2` in `environments/dev.bru` -- same `TEST_PASSWORD` in `bruno/.env`.
+
+  Saves `idToken2` only (not `accessToken2` -- nothing in this collection needs the player's
+  access token). Requests that must run as the player use `auth: bearer` with
+  `{{idToken2}}` explicitly, since `auth: inherit` resolves to the collection's `{{idToken}}`
+  (the host).
+}

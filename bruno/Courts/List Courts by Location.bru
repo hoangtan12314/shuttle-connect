@@ -1,0 +1,45 @@
+meta {
+  name: List Courts by Location
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/courts?city=HCM&area=HCM_DISTRICT_10
+  body: none
+  auth: none
+}
+
+params:query {
+  city: HCM
+  area: HCM_DISTRICT_10
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+}
+
+tests {
+  test("includes the court created in this run", function () {
+    const courts = res.getBody().data;
+    expect(courts.map(c => c.id)).to.include(bru.getEnvVar("courtId"));
+  });
+}
+
+docs {
+  Implemented: `ListCourtsByDistrictUseCase` + `ListCourtsByDistrictDto`, backed by a `Query`
+  on `GSI1` with `GSI1PK = CLOC#<city>#<area>`.
+
+  Query param is **`area`**, not `district` -- `ListCourtsByDistrictInput`'s field is
+  named `area` (matches `Area`, the enum), even though the response shape calls the same
+  concept `district`. Easy to typo; this is the one place the request and response don't
+  agree on a name.
+
+  **Known gap:** unlike `Court.create`, this use case never checks the city/area pair
+  against `CITY_AREAS` -- a mismatched pair (see **List Courts - mismatched pair**)
+  currently returns `200` with `[]` instead of `400 INVALID_CITY_DISTRICT`.
+
+  **Known gap:** the plan calls for results "sorted by name in memory" -- not implemented;
+  results come back in raw `GSI1SK` (`created_at`) order.
+}

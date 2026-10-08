@@ -1,0 +1,45 @@
+meta {
+  name: List Session Requests (host)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/sessions/{{sessionId}}/requests
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+}
+
+tests {
+  test("shows the player's real request with their real name", function () {
+    const requests = res.getBody().data;
+    expect(requests).to.have.lengthOf.at.least(1);
+    const mine = requests[0];
+    expect(mine.user.name).to.equal("Test Player");   // D1 -- not 'Some random name'
+    expect(mine.status).to.equal("PENDING");
+  });
+}
+
+docs {
+  Implemented, but two real bugs currently block **every** request in this folder --
+  check both before assuming your own setup is wrong:
+
+  1. `SessionModule` was never updated with the Step 5 providers. `SessionController`
+     injects `GetRequestsUseCase`/`DecideRequestUseCase`/`REQUEST_REPOSITORY`, none of
+     which are in the module's `providers` array. This fails Nest's DI resolution **at
+     boot** -- the session Lambda won't come up at all, against `local` or `dev`.
+  2. Once that's fixed: `SessionController.getRequestsBySession` never returns its
+     result (`const requests = await ...;` with no `return requests;`). This endpoint
+     would respond `200` with empty `data` even though the use case computed the right
+     thing.
+
+  Runs as the **host** (`auth: inherit`). Plain table `Query`:
+  `PK = SESSION#<id> AND begins_with(SK, 'REQUEST#')` (access pattern #1 from
+  `DATABASE_DESIGN.md`). 404 if the session doesn't exist; `ForbiddenError` (403) if the
+  caller isn't `session.host.id` -- see the next request.
+}

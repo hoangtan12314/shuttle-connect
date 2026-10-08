@@ -1,4 +1,4 @@
-import { sessionFunction, courtFunction, requestFunction } from "./function";
+import { sessionFunction, courtFunction, requestFunction, userFunction } from "./function";
 
 export const api = new sst.aws.ApiGatewayV2("shuttle-connect-api", {
   cors: {
@@ -13,3 +13,5 @@ api.route("ANY /courts/{proxy+}", courtFunction.arn);
 api.route("ANY /courts", courtFunction.arn);
 api.route("ANY /requests/{proxy+}", requestFunction.arn);
 api.route("ANY /requests", requestFunction.arn);
+api.route("ANY /users/{proxy+}", userFunction.arn);
+api.route("ANY /users", userFunction.arn);

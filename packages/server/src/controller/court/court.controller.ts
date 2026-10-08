@@ -1,12 +1,19 @@
-import { Body, Controller, Get, Inject, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Post, Query } from '@nestjs/common';
 import { CreateCourtDto } from '../dtos/court';
-import { GetCourtByIdUseCase, CreateCourtUseCase } from '../../application/court';
+import {
+  GetCourtByIdUseCase,
+  CreateCourtUseCase,
+  ListCourtsByDistrictUseCase,
+} from '../../application/court';
 import { ValidateBodyPipe } from '../pipes';
 import { Public } from '../guard';
+import { ListCourtsByDistrictDto } from '../dtos/court/list-courts-by-district.dto';
 
 @Controller('courts')
 export class CourtController {
   constructor(
+    @Inject(ListCourtsByDistrictUseCase)
+    private readonly listCourtsByDistrictUseCase: ListCourtsByDistrictUseCase,
     @Inject(GetCourtByIdUseCase)
     private readonly getCourtByIdUseCase: GetCourtByIdUseCase,
     @Inject(CreateCourtUseCase)
@@ -14,10 +21,20 @@ export class CourtController {
   ) {}
 
   @Public()
+  @Get()
+  async listCourtsByDistrict(
+    @Query(new ValidateBodyPipe(ListCourtsByDistrictDto))
+    listCourtsByDistrictDto: ListCourtsByDistrictDto,
+  ) {
+    const courts = await this.listCourtsByDistrictUseCase.execute(listCourtsByDistrictDto);
+    return courts;
+  }
+
+  @Public()
   @Get(':id')
   async getCourtById(@Param('id') id: string) {
     const court = await this.getCourtByIdUseCase.execute(id);
-    return court; 
+    return court;
   }
 
   @Post()

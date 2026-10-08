@@ -10,11 +10,18 @@ post {
   auth: inherit
 }
 
+script:pre-request {
+  const start = new Date(Date.now() + 24 * 60 * 60 * 1000); // tomorrow
+  const end = new Date(start.getTime() + 2 * 60 * 60 * 1000); // +2h
+  bru.setVar("dynamicStartTime", start.toISOString());
+  bru.setVar("dynamicEndTime", end.toISOString());
+}
+
 body:json {
   {
     "courtId": "{{courtId}}",
-    "startTime": "2026-10-01T11:00:00.000Z",
-    "endTime": "2026-10-01T13:00:00.000Z",
+    "startTime": "{{dynamicStartTime}}",
+    "endTime": "{{dynamicEndTime}}",
     "slotsRemaining": 8,
     "slotsTotal": 8,
     "priceMale": 60000,
@@ -51,6 +58,12 @@ docs {
   Creates a session at the court from the Courts folder, as the user logged in by
   **Auth / Login**. `SessionController.createSession` now returns the created session, so
   `sessionId` and `userId` are captured automatically for later requests to use.
+
+  `startTime`/`endTime` are computed in `script:pre-request` as "tomorrow, +2h" rather than
+  hardcoded -- `Session.validateTimeSlot` also rejects `startTime < now`, so a fixed past
+  date would eventually make this (and everything downstream that depends on `sessionId`)
+  start failing with `INVALID_SESSION_TIME` for a reason that has nothing to do with what's
+  being tested.
 
   ## Field notes
 

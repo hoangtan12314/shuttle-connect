@@ -7,3 +7,8 @@ export interface UserItemResponse {
   skillLevel: SkillLevel;
   createdAt: string;
 }
+
+export interface UpdateProfileInput {
+  skillLevel?: SkillLevel,
+  fullName?: string
+}

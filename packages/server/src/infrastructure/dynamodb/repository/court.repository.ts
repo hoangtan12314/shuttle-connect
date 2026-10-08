@@ -1,8 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CourtItemResponse } from '@shuttle-connect/types';
-import { CourtMapper } from '../mapper';
+import { Area, City, CourtItemOverview, CourtItemResponse } from '@shuttle-connect/types';
+import { courtLocationKey, CourtMapper } from '../mapper';
 import { DYNAMODB_CLIENT, TABLE_NAME } from '../provider';
-import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+} from '@aws-sdk/lib-dynamodb';
 import { Court, CourtRepository } from '../../../domain/court';
 
 @Injectable()
@@ -11,6 +16,19 @@ export class CourtRepositoryDynamoDB implements CourtRepository {
     @Inject(DYNAMODB_CLIENT) private client: DynamoDBDocumentClient,
     @Inject(TABLE_NAME) private tableName: string,
   ) {}
+
+  async listCourtsByDistrict(city: City, area: Area): Promise<CourtItemOverview[]> {
+    const result = await this.client.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        IndexName: 'GSI1',
+        KeyConditionExpression: 'GSI1PK = :pk',
+        ExpressionAttributeValues: { ':pk': courtLocationKey(city, area) },
+      }),
+    );
+
+    return (result.Items ?? []).map(CourtMapper.toOverview)
+  }
 
   async findById(id: string): Promise<CourtItemResponse | null> {
     const result = await this.client.send(

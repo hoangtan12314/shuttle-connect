@@ -36,7 +36,7 @@ export class RequestMapper {
     };
   }
 
-  static toResponse(item: RequestRecord): RequestItemResponse {
+  static toResponse(item: Record<string, any>): RequestItemResponse {
     const { city, district } = fromLocationKey(item.location);
 
     return {

@@ -26,7 +26,7 @@ export class UserMapper {
 
   static toResponse(item: Record<string, any>): UserItemResponse {
     return {
-      id: item.PK.replace('#', ''),
+      id: item.PK.replace('USER#', ''),
       fullName: item.full_name,
       email: item.email,
       skillLevel: item.skill_level,

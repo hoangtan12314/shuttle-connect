@@ -1,0 +1,35 @@
+meta {
+  name: Update Profile
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{baseUrl}}/users/me
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "skillLevel": 3
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.skillLevel: eq 3
+}
+
+docs {
+  Implemented: `UpdateProfileUseCase` + `UpdateProfileDto`, `UserRepository.update` as an
+  `UpdateCommand` with `ConditionExpression: attribute_exists(PK)`.
+
+  This is the *only* way `skillLevel` ever changes -- it's not a Cognito attribute, so
+  there's no JWT claim to fall back on; it exists solely in the `USER#` DynamoDB item.
+
+  Known gap this does **not** fix: `user_name` already denormalized onto existing
+  sessions/requests stays stale after this call -- the Streams-based sync in
+  `DATABASE_DESIGN.md` is still unbuilt. Only *future* sessions/requests pick up the new name.
+}

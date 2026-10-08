@@ -1,0 +1,32 @@
+meta {
+  name: My Hosted Sessions
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/sessions/mine
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+}
+
+tests {
+  test("includes the session this user hosts", function () {
+    const sessions = res.getBody().data;
+    expect(sessions.map(s => s.id)).to.include(bru.getEnvVar("sessionId"));
+  });
+}
+
+docs {
+  Implemented and correctly ordered -- `getMineSession` (`@Get('mine')`) is declared
+  before `getSessionById` (`@Get(':id')`) in `SessionController`, so this reaches its own
+  handler instead of `:id` capturing `"mine"`.
+
+  `GSI2PK = USER#<me>`, `GSI2SK BETWEEN 'SESSION#<now>' AND 'SESSION#9999999999999'`,
+  ascending.
+}

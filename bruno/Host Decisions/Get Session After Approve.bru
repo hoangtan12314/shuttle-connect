@@ -1,0 +1,27 @@
+meta {
+  name: Get Session After Approve
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/sessions/{{sessionId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.slotsRemaining: eq 7
+}
+
+docs {
+  Depends on **Approve Request** having run. `slotsTotal` was created as `8`
+  (see **Sessions / Create Session**), so one approval should leave exactly `7`.
+
+  This is the one check in this folder that passes today independent of anything else --
+  `GET /sessions/:id` already exists -- but the assertion itself (`7`, not `8`) only holds
+  once the approve transaction actually decrements the count, so it's really testing
+  **Approve Request**, not this route.
+}

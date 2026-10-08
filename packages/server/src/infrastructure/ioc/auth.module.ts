@@ -3,7 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { CognitoTokenVerifierProvider } from '../auth';
 import { DynamoDbClientProvider, TableNameProvider } from '../dynamodb/provider';
 import { USER_REPOSITORY } from '../../domain/user';
-import { UserRepositoryDynamoDB } from '../dynamodb/repository/user.repository';
+import { UserRepositoryDynamoDB } from '../dynamodb/repository';
 import { AuthGuard } from '../../controller/guard/auth.guard';
 import { ResolveCurrentUserUseCase } from '../../application/user';
 

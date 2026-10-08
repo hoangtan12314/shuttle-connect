@@ -4,6 +4,10 @@ export interface CreateRequestInput {
   sessionId: string;
 }
 
+export interface DecideRequestInput {
+  status: RequestStatus;
+}
+
 export interface RequestItemResponse {
   user: {
     id: string;

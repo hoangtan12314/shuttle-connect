@@ -1,0 +1,49 @@
+meta {
+  name: Approve Request
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/sessions/{{sessionId}}/requests/{{playerId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "status": "APPROVED"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.status: eq APPROVED
+}
+
+docs {
+  Implemented, blocked by the same `SessionModule` DI gap as **List Session Requests
+  (host)** (`GetRequestsUseCase`/`DecideRequestUseCase`/`REQUEST_REPOSITORY` missing from
+  its `providers` array) -- the session Lambda won't boot until that's fixed. Once it is,
+  this should pass as written.
+
+  Runs as the **host**. Needs `{{playerId}}` -- captured by
+  **Requests / Create Request**'s `post-response` script from `data.userId`.
+
+  `DecideRequestUseCase`, approve path (as implemented):
+  1. Load session -> 404 if missing; caller must be `session.host.id` -> else 403.
+  2. `GetItem` the request -> 404 if missing; status must be `PENDING` ->
+     else `RequestAlreadyDecidedError` (409) -- see **Approve Request Again**.
+  3. `SessionNotOpenError` / `SessionFullError` pre-checks against the session just loaded.
+  4. One `TransactWriteItems`:
+     ```
+     request item:  SET #s = :approved                     IF #s = :pending
+     session META:  SET slots_remaining = :n - 1,
+                        #s = (:n - 1 == 0 ? FULL : OPEN)    IF slots_remaining = :n AND #s = :open
+     ```
+     Conditioning the session update on the *exact* slot count read in step 1 is what makes
+     two simultaneous approvals for the last slot resolve safely -- see
+     **Get Session After Approve** for the slot-count check, and the plan's race-condition
+     verification step for the concurrent-approval case this transaction exists to prevent.
+}

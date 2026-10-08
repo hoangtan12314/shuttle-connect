@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateSessionInput, SessionStatus } from '@shuttle-connect/types';
 import { Session, SESSION_REPOSITORY, type SessionRepository } from '../../domain/session';
 import { COURT_REPOSITORY, type CourtRepository } from '../../domain/court';
+import { USER_REPOSITORY, type UserRepository } from '../../domain/user';
 import { EntityNotFoundError } from '../../domain/shared/errors';
 
 @Injectable()
@@ -9,6 +10,7 @@ export class CreateSessionsUseCase {
   constructor(
     @Inject(SESSION_REPOSITORY) private sessionRepository: SessionRepository,
     @Inject(COURT_REPOSITORY) private courtRepository: CourtRepository,
+    @Inject(USER_REPOSITORY) private userRepository: UserRepository
   ) {}
 
   async execute(hostId: string, input: CreateSessionInput): Promise<Session> {
@@ -29,7 +31,13 @@ export class CreateSessionsUseCase {
       endTime,
     });
 
-    await this.sessionRepository.create(sessionToBeCreated, court);
+    const host = await this.userRepository.findById(hostId)
+
+    if (!host) {
+      throw new EntityNotFoundError("User")
+    }
+
+    await this.sessionRepository.create(sessionToBeCreated, court, host);
 
     return sessionToBeCreated;
   }
