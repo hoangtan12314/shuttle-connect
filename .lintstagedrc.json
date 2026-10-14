@@ -1,5 +1,5 @@
 {
-  "packages/frontend/**/*.{ts,tsx}": ["prettier --write"],
-  "packages/frontend/**/*.css": ["prettier --write"],
-  "packages/server/**/*.ts": ["prettier --write --ignore-unknown"]
+  "packages/frontend/**/*.{ts,tsx}": ["pnpm --filter frontend exec prettier --write"],
+  "packages/frontend/**/*.css": ["pnpm --filter frontend exec prettier --write"],
+  "packages/server/**/*.ts": ["pnpm --filter server exec prettier --write --ignore-unknown"]
 }
