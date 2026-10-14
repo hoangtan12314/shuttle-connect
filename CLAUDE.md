@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Shuttle Connect — a badminton session-booking app. pnpm workspace monorepo with a NestJS backend deployed to AWS Lambda via SST (ion/v3) with Cognito for authentication, a React/Vite frontend (still the unmodified starter template — no real UI built yet), and a shared types package. Infra (`infra/`, `sst.config.ts`) lives at the repo root, not inside a package.
+Shuttle Connect — a badminton session-booking app. pnpm workspace monorepo with a NestJS backend deployed to AWS Lambda via SST (ion/v3) with Cognito for authentication, a React 19 + Vite frontend using Feature-Sliced Design (scaffolded, business logic not yet written — see the frontend section below), and a shared types package. Infra (`infra/`, `sst.config.ts`) lives at the repo root, not inside a package.
 
 ```
 packages/
-  frontend/   React 19 + Vite, boilerplate only
+  frontend/   React 19 + Vite, Feature-Sliced Design — see packages/frontend/README.md for current status
   server/     NestJS, Clean Architecture layout, deployed both as a normal app and as a Lambda
   types/      @shuttle-connect/types — shared request/response contracts + enums, consumed as compiled JS
-infra/        SST resource definitions (Dynamo table, API Gateway, Lambda functions, Cognito user pool)
+infra/        SST resource definitions (Dynamo table, API Gateway, Lambda functions, Cognito user pool, frontend static site)
 sst.config.ts SST app entry — imports ./infra to register resources
 bruno/        Bruno API collection for the local and deployed API — see bruno/README.md
 documentation/DATABASE_DESIGN.md   DynamoDB single-table design rationale — read this before touching the data model
@@ -33,6 +33,18 @@ pnpm run sst:deploy         # builds types, then `sst deploy`
 pnpm run sst:remove         # `sst remove`
 ```
 
+Inside `packages/frontend`:
+```bash
+pnpm run dev                # vite (no SST bindings needed to boot, unlike the server)
+pnpm run build              # tsc -b && vite build
+pnpm run lint                # eslint . — code-quality gate, part of normal CI
+pnpm run lint:fsd            # steiger ./src — Feature-Sliced Design architecture linter, separate
+                              #   from `lint` on purpose (see the FSD section below)
+pnpm run test                # vitest run (MSW-backed; passWithNoTests while the suite is still empty)
+pnpm run test:e2e            # playwright test — needs the real API running (`pnpm run sst:dev`)
+pnpm run format              # prettier --write .
+```
+
 `dev:server` and `start:dev` can't boot bare: the DynamoDB and Cognito providers read SST's `Resource[...]`, so run them with SST bindings — `npx sst shell -- pnpm run dev:server`. The local server also skips `ResponseTransformInterceptor` (see the entrypoints section), so its success responses aren't wrapped in `{ success, data }` the way the deployed API's are.
 
 Inside `packages/server`:
@@ -51,6 +63,8 @@ Inside `packages/types`, `pnpm run build` (`tsc -p tsconfig.json`) must be re-ru
 
 This package's `package.json` points `main`/`types` at `dist/index.js` / `dist/index.d.ts`, not raw `src/`. It must be compiled before `server` or `frontend` can see changes to it. This isn't a style choice: raw `.ts` barrel files (`export * from './enums'`) only resolve under Node's lenient CommonJS rules, and both Node's native `.ts` execution *and* SST's esbuild Lambda bundler apply strict resolution once they detect ESM syntax — a bare directory import breaks under that. Giving the package a real compiled `dist/` output sidesteps the whole problem. If you add new exports to `packages/types/src`, run `pnpm run build:types` (or the affected `dev:*`/`sst:*` script, which does it for you) before expecting other packages to see them.
 
+**The package builds to two output formats, not one.** `pnpm run build` runs `tsc -p tsconfig.json` (CommonJS, `nodenext`, → `dist/`) *and* `tsc -p tsconfig.esm.json` (real ESM, `module: ESNext`, → `dist/esm/`). `package.json`'s `exports` map picks between them: `require` → `dist/index.js` (what `server` and the esbuild Lambda bundler consume via `require()`), `import` → `dist/esm/index.js` (what `frontend`'s Vite dev server consumes). The ESM build exists only because Vite's dev-time dependency pre-bundler (esbuild) can't statically detect named exports through `tsc`'s multi-level CommonJS `__exportStar(require(...))` barrel chains (`index.js` → `enums/index.js` → `court.enum.js`) — it silently falls back to `export default` only, which breaks any `import { Area } from '@shuttle-connect/types'` in the browser with "does not provide an export named." Node's own CJS↔ESM interop (used by `server`) doesn't have this limitation, which is why this only ever shows up on the frontend side. If you add a new tsconfig or build step to this package, keep both outputs — removing the ESM build silently reintroduces this failure mode in `pnpm run dev:frontend`/`sst:dev` without touching anything in `frontend` itself.
+
 ### Cross-package dependency declarations must be explicit
 
 Every package that imports something — including `@shuttle-connect/types` and `sst` (used in `server`'s DynamoDB table-name provider via `import { Resource } from 'sst'`) — must declare it in its own `package.json`. pnpm does not hoist packages into a workspace member's `node_modules` unless that member's manifest lists it; anything that resolves without being declared is only doing so by accident (Node/esbuild walking up to a parent directory's `node_modules`), which breaks the moment the package is built or deployed in isolation from the rest of the monorepo.
@@ -58,6 +72,57 @@ Every package that imports something — including `@shuttle-connect/types` and 
 ### `moduleResolution` differs per package on purpose
 
 `tsconfig.base.json` sets `"module": "ESNext"` / `"moduleResolution": "Bundler"` — correct for `frontend`, where Vite's own bundler does real resolution and TypeScript only type-checks (`noEmit: true`). `server` and `types` override this to `"nodenext"`, because their compiled output is what Node actually executes directly (no bundler in front) — this makes relative-import extension and directory-resolution rules exactly as strict as Node's real runtime behavior. Don't copy import styles between `frontend` and `server` assuming they're interchangeable.
+
+### Frontend: Feature-Sliced Design (FSD)
+
+The frontend is scaffolded (folders, tooling, config all real and verified working) but its
+business-logic files are deliberately **empty placeholders** — each contains one comment naming
+its purpose, left that way on purpose so the architecture is learned by filling them in, not
+generated wholesale. Don't assume a file with content in it means the feature works; check whether
+it's still just a comment. `packages/frontend/README.md` tracks exactly which files are real vs.
+placeholder as of the last session — read it before assuming current state, since this changes
+incrementally across sessions.
+
+Layers, each only allowed to import from the layers below it (enforced by `steiger`, run via
+`pnpm run lint:fsd`, kept separate from `pnpm run lint` since it's an architecture-completeness
+check, not a code-quality one):
+
+```
+app/        composition root — providers, router (TanStack Router, file-based under app/routes/),
+            global styles (Tailwind v4, CSS-variable theme)
+pages/      one slice per screen, segmented as pages/<name>/ui/<Name>Page.tsx + index.ts
+widgets/    large page sections combining an entity + a feature (e.g. session-browser)
+features/   one user action per slice — a verb (join-session, decide-request, create-session)
+entities/   one domain noun per slice — model + read queries (TanStack Query) + display UI
+            (session, request, court, user)
+shared/     no business knowledge — shadcn/ui primitives, the api client, env config
+```
+
+A slice's internals are split into segments (`ui/`, `api/`, `model/`, `lib/`, `config/`) and expose
+only an `index.ts` public API — other slices import `@/entities/session`, never
+`@/entities/session/ui/SessionCard` directly. Maps onto the backend's Clean Architecture you
+already know: `entities/` ≈ `domain/`, `features/` ≈ `application/` use cases (one per action),
+`pages/`+`app/routes/` ≈ `controller/`, `shared/api` ≈ `infrastructure/`.
+
+`steiger` is zero-config — it recognizes the standard FSD layer names directly, no
+`steiger.config.ts` exists or is needed. A clean scaffold still reports "insignificant slice"
+warnings on every slice nothing imports yet (expected, resolves itself as slices get wired
+together) and one accepted nitpick on `app/providers`'s segment name (not a canonical
+`ui`/`api`/`model` name, but the conventional FSD exception for cross-cutting app setup).
+
+Stack: shadcn/ui on Tailwind v4 (`shared/ui`, components copied into the repo, not a black-box
+dependency), TanStack Router + TanStack Query, Zustand (client-only global state — most state is
+either server state via Query or local `useState`), react-oidc-context for the Cognito hosted-UI
+flow, React Hook Form + Zod. Response envelope consumed via `shared/api/client.ts`'s
+`apiRequest<T>()`, which unwraps `ApiSuccessResponse<T>`/throws `ApiError` (carrying `.code`,
+comparable against the shared `ErrorCode` enum) on `ApiErrorResponse` — the same contract
+`GlobalExceptionFilter` produces server-side.
+
+`infra/web.ts` deploys the frontend as an `sst.aws.StaticSite` and injects `VITE_API_URL` /
+`VITE_COGNITO_*` as real env vars via `dev.command`, so `pnpm run sst:dev` starts Vite with live
+values — no hand-maintained `.env` for the deployed API/Cognito client id. Local-only `pnpm run
+dev` (outside `sst:dev`) still needs a `.env.local` for these, since SST isn't injecting anything
+in that path.
 
 ### Server: Clean Architecture layering
 
@@ -83,7 +148,7 @@ Two conventions exist because of how the server is bundled, and both fail only *
 
 ### Auth: Cognito user pool + a global `AuthGuard`
 
-Cognito authenticates; the app never handles passwords. `infra/auth.ts` defines the user pool (email sign-in; `name` is a **required** attribute) and a `Web` app client set up for the hosted-UI authorization-code flow (`callbackUrls` → `http://localhost:5173/callback`). There is no frontend auth code yet. Required attributes are immutable once a pool exists — changing them means replacing the pool, which destroys every user and changes every `sub`. Each Lambda links `userPool` and `userPoolClient`, so code reads `Resource['shuttle-connect-user-pool'].id` and `Resource.Web.id`; the `Resource` key is the string passed to the SST constructor / `addClient`, not the exported variable name.
+Cognito authenticates; the app never handles passwords. `infra/auth.ts` defines the user pool (email sign-in; `name` is a **required** attribute) and a `Web` app client set up for the hosted-UI authorization-code flow (`callbackUrls` → `http://localhost:5173/callback`). Frontend auth code (`features/auth`, `app/providers`) is scaffolded but not yet written — see the FSD section above. Required attributes are immutable once a pool exists — changing them means replacing the pool, which destroys every user and changes every `sub`. Each Lambda links `userPool` and `userPoolClient`, so code reads `Resource['shuttle-connect-user-pool'].id` and `Resource.Web.id`; the `Resource` key is the string passed to the SST constructor / `addClient`, not the exported variable name.
 
 Flow: the frontend sends the **ID token** as `Authorization: Bearer` — not the access token, because provisioning a user needs `email`/`name`, which access tokens don't carry. `AuthGuard` (`controller/guard/`) verifies it locally with `aws-jwt-verify` (`CognitoTokenVerifierProvider` in `infrastructure/auth/`, which `hydrate()`s the JWKS once at startup). `ResolveCurrentUserUseCase` then maps the Cognito `sub` to an internal user id, creating the user on first sight, and the guard sets `request.user = { id, externalAuthId }`. Controllers read it with `@CurrentUser()`; a route opts out with `@Public()`. A bad token is a 401, but failing to *reach* Cognito (`FetchError`) is deliberately left as a 500 — it's our outage, and a 401 would send the client into a pointless re-login.
 
@@ -105,7 +170,7 @@ Users have two ids on purpose. A user is `USER#<internalId>` (a `randomUUID()`) 
 
 ### Infra (SST v3 / "ion")
 
-`sst.config.ts` (repo root) just does `await import("./infra")` in `run()` — every file under `infra/` registers its resources as a module-load side effect via `infra/index.ts`'s barrel export; a resource file not re-exported there never gets deployed. `infra/function.ts` bundles each Lambda straight from server's TypeScript source via esbuild (no `nest build`/`tsc` step involved) and explicitly excludes some packages from the bundle (`@aws-sdk/*`, unused `@nestjs/microservices` and `@nestjs/websockets` subpaths) via `nodejs.esbuild.external`. `infra/database.ts` defines the single DynamoDB table and its 2 GSIs — see `documentation/DATABASE_DESIGN.md` for the full access-pattern rationale; the doc's Streams-based denormalization sync is still design intent, not yet implemented. `infra/auth.ts` defines the Cognito pool and client; its hosted-UI domain prefix (`shuttle-connect-<stage>`) is unique across all AWS accounts, so a first deploy can fail on a name clash. `.sst/` and `sst-env.d.ts` (generated in every package, auto-injected `Resource` types) are gitignored — never hand-edit them.
+`sst.config.ts` (repo root) just does `await import("./infra")` in `run()` — every file under `infra/` registers its resources as a module-load side effect via `infra/index.ts`'s barrel export; a resource file not re-exported there never gets deployed. `infra/function.ts` bundles each Lambda straight from server's TypeScript source via esbuild (no `nest build`/`tsc` step involved) and explicitly excludes some packages from the bundle (`@aws-sdk/*`, unused `@nestjs/microservices` and `@nestjs/websockets` subpaths) via `nodejs.esbuild.external`. `infra/database.ts` defines the single DynamoDB table and its 2 GSIs — see `documentation/DATABASE_DESIGN.md` for the full access-pattern rationale; the doc's Streams-based denormalization sync is still design intent, not yet implemented. `infra/auth.ts` defines the Cognito pool and client; its hosted-UI domain prefix (`shuttle-connect-<stage>`) is unique across all AWS accounts, so a first deploy can fail on a name clash. `infra/web.ts` defines the frontend as an `sst.aws.StaticSite`, injecting `VITE_API_URL`/`VITE_COGNITO_*` via `environment` and using `dev.command` so `sst dev` runs the real Vite dev server rather than trying to deploy a static build. `.sst/` and `sst-env.d.ts` (generated in every package, auto-injected `Resource` types) are gitignored — never hand-edit them. **`infra/api.ts` routes by explicit method (`GET /sessions`, `POST /sessions`, ...), never `ANY`.** `sst.aws.ApiGatewayV2`'s `cors` option only auto-answers `OPTIONS` preflight requests when no route explicitly matches `OPTIONS` for that path; an `ANY` (or any route including `OPTIONS` in its method set) swallows the preflight itself and forwards it to the Lambda/`AuthGuard`, which has no `OPTIONS` handler and fails the preflight with a non-2xx status — the browser then reports it as a CORS error even though the actual CORS headers/config are fine. Keep new routes to the specific methods the controller defines.
 
 ### Commit convention
 
