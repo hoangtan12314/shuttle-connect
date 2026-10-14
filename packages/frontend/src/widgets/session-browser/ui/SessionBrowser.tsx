@@ -1,4 +1,6 @@
 import { useSessions, SessionCard } from '@/entities/session';
+import { JoinSessionButton } from '@/features/join-session';
+import { useAuthUser } from '@/features/auth';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Area, City } from '@shuttle-connect/types';
 
@@ -7,6 +9,7 @@ export function SessionBrowser() {
     City.HO_CHI_MINH,
     Area.HCM_DISTRICT_10,
   );
+  const { isAuthenticated } = useAuthUser();
 
   if (isLoading) {
     return (
@@ -29,7 +32,16 @@ export function SessionBrowser() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {data.map((session) => (
-        <SessionCard key={session.id} session={session} />
+        <SessionCard
+          key={session.id}
+          session={session}
+          action={
+            <JoinSessionButton
+              session={session}
+              isAuthenticated={isAuthenticated}
+            />
+          }
+        />
       ))}
     </div>
   );
