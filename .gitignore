@@ -1,6 +1,9 @@
 # Dependencies
 node_modules
 
+# Personal learning notes -- not meant for the repo/colleagues
+packages/frontend/GLOSSARY.md
+
 # sst
 .sst
 sst-env.d.ts

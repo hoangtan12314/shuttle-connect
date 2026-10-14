@@ -17,6 +17,7 @@
     "@commitlint/config-conventional": "^21.2.0",
     "@types/aws-lambda": "^8.10.162",
     "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
     "sst": "^4.17.1"
   }
 }

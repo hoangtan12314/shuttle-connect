@@ -1,0 +1,5 @@
+{
+  "packages/frontend/**/*.{ts,tsx}": ["prettier --write"],
+  "packages/frontend/**/*.css": ["prettier --write"],
+  "packages/server/**/*.ts": ["prettier --write --ignore-unknown"]
+}
