@@ -15,6 +15,8 @@ export default $config({
       api: infra.api.url,
       userPoolId: infra.userPool.id,
       userPoolClientId: infra.userPoolClient.id,
+      cognitoDomain: infra.userPool.domainUrl,
+      web: infra.web.url,
     };
   },
 });
