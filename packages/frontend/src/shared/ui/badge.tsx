@@ -17,6 +17,12 @@ const badgeVariants = cva(
           'border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
         ghost: '[a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 [a&]:hover:underline',
+        // Design's "tag" color set (bg-100/text-800 pairs off the ramps in index.css) -- status
+        // pills (SessionStatusBadge, RequestStatusBadge) pick one of these, not `default`.
+        brand: 'bg-brand-100 text-brand-800',
+        brand2: 'bg-brand2-100 text-brand2-800',
+        neutral: 'bg-neutral-100 text-neutral-800',
+        'brand-outline': 'border-primary bg-transparent text-primary',
       },
     },
     defaultVariants: {

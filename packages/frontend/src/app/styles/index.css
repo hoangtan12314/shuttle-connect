@@ -1,27 +1,44 @@
 @import 'tailwindcss';
+@import '@fontsource/montserrat/400.css';
+@import '@fontsource/montserrat/600.css';
+@import '@fontsource/montserrat/800.css';
 
-/* Theme tokens -- CSS variables shadcn components read. Replace with real brand values later;
-   these are the stock shadcn "neutral" palette so the app renders sensibly from the start. */
+/* Theme tokens -- CSS variables shadcn components read.
+   Source: the "Shuttle Connect UI design" artifact (Modernist design system), with two
+   deliberate deviations the user asked for: 12px corner radius (the design system's own default
+   is 0, the prototype itself uses 12px everywhere -- we went with what's actually on screen) and
+   Montserrat instead of the design's Archivo. Hex values are copied verbatim from the design
+   rather than converted to oklch (unlike the rest of this file) so they stay exactly matchable
+   against the source -- a hand-converted oklch value couldn't be verified by eye.
+
+   Naming rule, same as the original scaffold: :root holds the RAW value under a plain name
+   (--background), @theme maps it to the Tailwind-facing name (--color-background: var(--background)).
+   Never give both sides the identical name -- that's a self-reference, not a mapping, and
+   Tailwind silently resolves it to nothing. */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --radius: 0.625rem;
+  --background: #f3f2f2;
+  --foreground: #201e1d;
+  --card: #eae9e9;
+  --card-foreground: #201e1d;
+  --popover: #eae9e9;
+  --popover-foreground: #201e1d;
+  --primary: #ec3013;
+  --primary-foreground: #f3f2f2;
+  --secondary: #eae9e9;
+  --secondary-foreground: #201e1d;
+  --muted: #eae9e9;
+  --muted-foreground: #605d5d;
+  /* shadcn's own --accent/--accent-foreground are a subtle hover-state tint (dropdown/menu item
+     hover, etc) -- NOT the design's brand "accent" color, which is --primary above. Keep this
+     pair neutral; don't repoint it at the brand red. */
+  --accent: #eae7e7;
+  --accent-foreground: #201e1d;
+  --destructive: #ae1800;
+  --destructive-foreground: #f3f2f2;
+  --border: color-mix(in srgb, #201e1d 40%, transparent);
+  --input: color-mix(in srgb, #201e1d 40%, transparent);
+  --ring: #ec3013;
+  --radius: 0.75rem;
 
   /* App-specific semantic colors -- not part of shadcn's stock palette. Named by what they
      MEAN (success/warning), not what they look like, same reasoning as the palette above. */
@@ -29,27 +46,73 @@
   --success-foreground: oklch(0.985 0 0);
   --warning: oklch(0.75 0.15 75);
   --warning-foreground: oklch(0.145 0 0);
+
+  /* Tonal ramps, copied from the design verbatim (its own comment: "generated in OKLCH on one
+     shared lightness scale, so the same step of any role matches the others in visual value").
+     Separate from --primary/--accent above -- these are the raw ramp, for tags/badges and any
+     future component that needs a specific step rather than just "the brand color". Raw names
+     here are --ramp-neutral-N, --ramp-brand-N, --ramp-brand2-N, distinct from the --color-*
+     names @theme maps them to below (see the naming rule above). */
+  --ramp-neutral-100: #f8f4f4;
+  --ramp-neutral-200: #eae7e7;
+  --ramp-neutral-300: #d7d3d3;
+  --ramp-neutral-400: #bab6b6;
+  --ramp-neutral-500: #9b9797;
+  --ramp-neutral-600: #7d7979;
+  --ramp-neutral-700: #605d5d;
+  --ramp-neutral-800: #444141;
+  --ramp-neutral-900: #2d2b2b;
+
+  --ramp-brand-100: #fff2ef;
+  --ramp-brand-200: #ffe0d9;
+  --ramp-brand-300: #ffc4b8;
+  --ramp-brand-400: #ff9783;
+  --ramp-brand-500: #ff563c;
+  --ramp-brand-600: #dd2b0f;
+  --ramp-brand-700: #ae1800;
+  --ramp-brand-800: #7c1405;
+  --ramp-brand-900: #4d170e;
+
+  --ramp-brand2-100: #fff2ef;
+  --ramp-brand2-200: #ffe0da;
+  --ramp-brand2-300: #ffc4b9;
+  --ramp-brand2-400: #ff9784;
+  --ramp-brand2-500: #ef6853;
+  --ramp-brand2-600: #c94b39;
+  --ramp-brand2-700: #9e3526;
+  --ramp-brand2-800: #71261b;
+  --ramp-brand2-900: #471d16;
+
+  /* Elevation -- same formula as the design: soft ink-tinted shadows. Raw names --elevation-*,
+     mapped to Tailwind's --shadow-* below (same reason as the ramps above). */
+  --elevation-sm: 0 1px 2px color-mix(in srgb, #2d2b2b 14%, transparent);
+  --elevation-md: 0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
+  --elevation-lg: 0 12px 32px color-mix(in srgb, #2d2b2b 22%, transparent);
 }
 
+/* Provisional only -- the design artifact is light-only (no dark-mode screens were designed).
+   This is a reasonable dark palette derived by hand so the app doesn't break if dark mode is
+   ever toggled, not a spec to treat as final; revisit once/if dark mode is actually designed. */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: #18171a;
+  --foreground: #f3f2f2;
+  --card: #242226;
+  --card-foreground: #f3f2f2;
+  --popover: #242226;
+  --popover-foreground: #f3f2f2;
+  --primary: #ff563c;
+  --primary-foreground: #18171a;
+  --secondary: #242226;
+  --secondary-foreground: #f3f2f2;
+  --muted: #242226;
+  --muted-foreground: #bab6b6;
+  --accent: #2d2b2b;
+  --accent-foreground: #f3f2f2;
+  --destructive: #ff9783;
+  --destructive-foreground: #18171a;
+  --border: color-mix(in srgb, #f3f2f2 15%, transparent);
+  --input: color-mix(in srgb, #f3f2f2 15%, transparent);
+  --ring: #ff563c;
 
   --success: oklch(0.7 0.15 150);
   --success-foreground: oklch(0.145 0 0);
@@ -57,7 +120,15 @@
   --warning-foreground: oklch(0.145 0 0);
 }
 
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
 @theme inline {
+  --font-sans: 'Montserrat', system-ui, sans-serif;
+  --font-weight-heading: 800;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -73,6 +144,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -80,6 +152,42 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+
+  /* Ramps -> utilities: bg-neutral-100..900, bg-brand-100..900, bg-brand2-100..900 (and the
+     text and border variants the same way). Unrelated to bg-primary/bg-accent above -- see the
+     comment on --accent in :root. */
+  --color-neutral-100: var(--ramp-neutral-100);
+  --color-neutral-200: var(--ramp-neutral-200);
+  --color-neutral-300: var(--ramp-neutral-300);
+  --color-neutral-400: var(--ramp-neutral-400);
+  --color-neutral-500: var(--ramp-neutral-500);
+  --color-neutral-600: var(--ramp-neutral-600);
+  --color-neutral-700: var(--ramp-neutral-700);
+  --color-neutral-800: var(--ramp-neutral-800);
+  --color-neutral-900: var(--ramp-neutral-900);
+  --color-brand-100: var(--ramp-brand-100);
+  --color-brand-200: var(--ramp-brand-200);
+  --color-brand-300: var(--ramp-brand-300);
+  --color-brand-400: var(--ramp-brand-400);
+  --color-brand-500: var(--ramp-brand-500);
+  --color-brand-600: var(--ramp-brand-600);
+  --color-brand-700: var(--ramp-brand-700);
+  --color-brand-800: var(--ramp-brand-800);
+  --color-brand-900: var(--ramp-brand-900);
+  --color-brand2-100: var(--ramp-brand2-100);
+  --color-brand2-200: var(--ramp-brand2-200);
+  --color-brand2-300: var(--ramp-brand2-300);
+  --color-brand2-400: var(--ramp-brand2-400);
+  --color-brand2-500: var(--ramp-brand2-500);
+  --color-brand2-600: var(--ramp-brand2-600);
+  --color-brand2-700: var(--ramp-brand2-700);
+  --color-brand2-800: var(--ramp-brand2-800);
+  --color-brand2-900: var(--ramp-brand2-900);
+
+  --shadow-sm: var(--elevation-sm);
+  --shadow-md: var(--elevation-md);
+  --shadow-lg: var(--elevation-lg);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -90,6 +198,16 @@
      here as widgets/pages need a size referenced from more than one place. */
   --spacing-header: 4rem;
   --container-content: 72rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: var(--font-weight-heading);
+  letter-spacing: -0.015em;
 }
 
 @layer base {
