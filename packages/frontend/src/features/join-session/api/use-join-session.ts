@@ -3,7 +3,7 @@ import type {
   CreateRequestInput,
   RequestItemResponse,
 } from '@shuttle-connect/types';
-import { ApiError, apiRequest } from '@/shared/api';
+import { apiRequest } from '@/shared/api';
 import { sessionKeys } from '@/entities/session';
 import { requestKeys } from '@/entities/request';
 import { toast } from 'sonner';
@@ -22,13 +22,6 @@ export function useJoinSession() {
         queryClient.invalidateQueries({ queryKey: sessionKeys.all }),
         queryClient.invalidateQueries({ queryKey: requestKeys.mine() }),
       ]);
-    },
-    onError: (error) => {
-      toast.error(
-        error instanceof ApiError
-          ? error.message
-          : 'Something went wrong. Please try again.',
-      );
     },
   });
 }

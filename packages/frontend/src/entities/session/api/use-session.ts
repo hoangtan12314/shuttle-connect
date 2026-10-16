@@ -7,6 +7,6 @@ import { apiRequest } from '@/shared/api';
 export function useSession(id: string) {
   return useQuery({
     queryKey: sessionKeys.detail(id),
-    queryFn: () => apiRequest<SessionItemResponse>(`/sessions?${id}`),
+    queryFn: () => apiRequest<SessionItemResponse>(`/sessions/${id}`),
   });
 }

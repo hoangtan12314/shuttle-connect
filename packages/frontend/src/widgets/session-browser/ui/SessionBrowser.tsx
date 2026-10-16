@@ -1,8 +1,10 @@
-import { useSessions, SessionCard } from '@/entities/session';
+import { useSessions, SessionCard, useMySessions } from '@/entities/session';
 import { JoinSessionButton } from '@/features/join-session';
 import { useAuthUser } from '@/features/auth';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Area, City } from '@shuttle-connect/types';
+import { Button } from '@/shared/ui/button';
+import { Link } from '@tanstack/react-router';
 
 export function SessionBrowser() {
   const { data, isLoading, isError, error } = useSessions(
@@ -10,6 +12,9 @@ export function SessionBrowser() {
     Area.HCM_DISTRICT_10,
   );
   const { isAuthenticated } = useAuthUser();
+
+  const { data: mySessions } = useMySessions(isAuthenticated);
+  const hostedSessionIds = new Set(mySessions?.map((s) => s.id));
 
   if (isLoading) {
     return (
@@ -36,10 +41,21 @@ export function SessionBrowser() {
           key={session.id}
           session={session}
           action={
-            <JoinSessionButton
-              session={session}
-              isAuthenticated={isAuthenticated}
-            />
+            hostedSessionIds.has(session.id) ? (
+              <Link
+                to="/sessions/$sessionId"
+                params={{ sessionId: session.id }}
+              >
+                <Button variant="outline" className="w-full">
+                  Manage
+                </Button>
+              </Link>
+            ) : (
+              <JoinSessionButton
+                session={session}
+                isAuthenticated={isAuthenticated}
+              />
+            )
           }
         />
       ))}

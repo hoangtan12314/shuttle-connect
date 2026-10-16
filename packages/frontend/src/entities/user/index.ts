@@ -1,1 +1,1 @@
-// entities/user public API
+export * from './api/use-me';

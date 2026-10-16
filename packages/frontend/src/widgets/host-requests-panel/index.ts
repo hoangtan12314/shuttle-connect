@@ -1,1 +1,1 @@
-// widgets/host-requests-panel public API
+export { HostRequestPanel } from './ui/HostRequestsPanel';

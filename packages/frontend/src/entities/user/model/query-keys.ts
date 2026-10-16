@@ -1,1 +1,4 @@
-// entities/user/model: userKeys.me()
+export const userKeys = {
+  all: ['users'] as const,
+  me: () => [...userKeys.all, 'me'] as const,
+};

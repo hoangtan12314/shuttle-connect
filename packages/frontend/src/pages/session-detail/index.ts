@@ -1,1 +1,1 @@
-// pages/session-detail public API
+export { SessionDetailPage } from './ui/SessionDetailPage';
