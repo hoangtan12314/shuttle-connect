@@ -1,7 +1,13 @@
 // shared/i18n: display names for backend enums (@shuttle-connect/types), ported from the design
 // artifact. Keyed by the actual enum values -- not re-typed strings -- so a new Area/SkillLevel
 // added to the backend shows up as a type error here instead of silently rendering nothing.
-import { Area, City, SkillLevel } from '@shuttle-connect/types';
+import {
+  Area,
+  City,
+  SessionStatus,
+  ShuttleType,
+  SkillLevel,
+} from '@shuttle-connect/types';
 
 export const areaNames: Record<Area, { vi: string; en: string }> = {
   [Area.HCM_DISTRICT_1]: { vi: 'Quận 1', en: 'District 1' },
@@ -39,6 +45,33 @@ export const skillLevelNames: Record<SkillLevel, { vi: string; en: string }> = {
   },
   [SkillLevel.INTERMEDIATE]: { vi: 'Trung bình khá', en: 'Intermediate' },
   [SkillLevel.UPPER_INTERMEDIATE]: { vi: 'Khá', en: 'Upper intermediate' },
+};
+
+export const sessionStatusNames: Record<
+  SessionStatus,
+  { vi: string; en: string }
+> = {
+  [SessionStatus.OPEN]: { vi: 'Còn chỗ', en: 'Open' },
+  [SessionStatus.FULL]: { vi: 'Đã đầy', en: 'Full' },
+  [SessionStatus.CANCELLED]: { vi: 'Đã hủy', en: 'Cancelled' },
+};
+
+// Brand names -- not translated (same string both languages), ported from the design's SH
+// constant. Not a { vi, en } pair like the others above since there's nothing to translate.
+export const shuttleTypeNames: Record<ShuttleType, string> = {
+  [ShuttleType.YONEX_AS30]: 'Yonex AS-30',
+  [ShuttleType.YONEX_AS50]: 'Yonex AS-50',
+  [ShuttleType.VICTOR_MASTER_ACE]: 'Victor Master Ace',
+  [ShuttleType.VICTOR_CHAMPION_NO1]: 'Victor Champion No.1',
+  [ShuttleType.VICTOR_GOLD_CHAMPION]: 'Victor Gold Champion',
+  [ShuttleType.RSL_CLASSIC]: 'RSL Classic',
+  [ShuttleType.RSL_NO1_TOURNEY]: 'RSL No.1 Tourney',
+  [ShuttleType.LINING_A_PLUS_300]: 'Li-Ning A+300',
+  [ShuttleType.LINING_A_PLUS_600]: 'Li-Ning A+600',
+  [ShuttleType.AEROPLANE_EG1130]: 'Aeroplane EG1130',
+  [ShuttleType.FLEET_CHAMPION]: 'Fleet Champion',
+  [ShuttleType.PROTECH_MASTERPIECE]: 'Protech Masterpiece',
+  [ShuttleType.OTHER]: 'Other',
 };
 
 export const skillLevelDescriptions: Record<

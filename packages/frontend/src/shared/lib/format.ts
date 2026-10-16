@@ -26,11 +26,33 @@ export function formatDayStrip(
   };
 }
 
-/** e.g. formatTimeRange('18:00', '20:00') -> "18:00 - 20:00". Session start/end times are plain
- *  "HH:mm" strings (see @shuttle-connect/types), not Date objects -- no timezone conversion
- *  applies here, so no Intl needed, just a fixed separator. */
-export function formatTimeRange(startTime: string, endTime: string): string {
-  return `${startTime} - ${endTime}`;
+/** e.g. formatDateTime('2026-10-17T18:00:00.000Z', 'en') -> "Sat, Oct 17, 6:00 PM". Session
+ *  timestamps are full ISO 8601 strings (see ListSessionsByDistrictDto's @IsISO8601()), not bare
+ *  "HH:mm" -- for a single timestamp, e.g. SessionOverview's startTime (the browse list doesn't
+ *  get endTime at all, only SessionItemResponse -- the single-session detail shape -- does). */
+export function formatDateTime(isoString: string, language: Language): string {
+  return new Intl.DateTimeFormat(localeFor[language], {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(isoString));
+}
+
+/** e.g. formatTimeRange('2026-10-17T18:00:00.000Z', '2026-10-17T20:00:00.000Z', 'en')
+ *  -> "6:00 PM - 8:00 PM". For SessionItemResponse (has both startTime/endTime, unlike the
+ *  browse list's SessionOverview) -- the session-detail page, not the browse card. */
+export function formatTimeRange(
+  startTime: string,
+  endTime: string,
+  language: Language,
+): string {
+  const timeFmt = new Intl.DateTimeFormat(localeFor[language], {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+  return `${timeFmt.format(new Date(startTime))} - ${timeFmt.format(new Date(endTime))}`;
 }
 
 /** e.g. formatRelativeMinutes(41) -> "41 min ago" / "41 phút trước". */

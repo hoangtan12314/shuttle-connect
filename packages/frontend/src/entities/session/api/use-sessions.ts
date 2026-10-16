@@ -9,5 +9,10 @@ export function useSessions(city: City, area: Area) {
     queryKey: sessionKeys.list(city, area),
     queryFn: () =>
       apiRequest<SessionOverview[]>(`/sessions?city=${city}&area=${area}`),
+    // Polling, not a websocket -- slots filling up or a host cancelling are the kind of changes
+    // worth surfacing without the viewer refreshing. 30s: frequent enough to feel "live" on a
+    // browse page people sit on, not so frequent it hammers the API for a value that rarely
+    // changes second to second.
+    refetchInterval: 30_000,
   });
 }

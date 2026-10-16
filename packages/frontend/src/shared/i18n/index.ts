@@ -7,4 +7,6 @@ export {
   cityNames,
   skillLevelNames,
   skillLevelDescriptions,
+  shuttleTypeNames,
+  sessionStatusNames,
 } from './messages/enums';
