@@ -134,7 +134,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
       </header>
 
-      <main className="min-w-0 flex-1 pb-16 md:pb-0">{children}</main>
+      <main className="min-w-0 flex-1 p-4 pb-16 md:p-6 md:pb-6">
+        {children}
+      </main>
 
       {/* Mobile bottom tab bar -- includes `create`, unlike the desktop sidebar's nav list. */}
       <nav className="bg-card fixed inset-x-0 bottom-0 flex items-center justify-around border-t p-1 md:hidden">
