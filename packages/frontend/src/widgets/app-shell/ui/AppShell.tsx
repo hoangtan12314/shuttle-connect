@@ -85,7 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               key={to}
               to={to}
               className="text-foreground flex min-h-12 items-center gap-3 rounded-xl px-3 font-semibold"
-              activeProps={{ className: 'bg-brand-100 text-brand-800' }}
+              activeProps={{ className: 'bg-primary-100 text-primary-800' }}
             >
               <Icon className="size-5" />
               {label}
@@ -135,7 +135,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link
           to="/"
           className="flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold"
-          activeProps={{ className: 'text-brand-700' }}
+          activeProps={{ className: 'text-primary-700' }}
         >
           <Search className="size-5" />
           {t.navBrowse}
@@ -143,7 +143,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link
           to="/activity"
           className="flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold"
-          activeProps={{ className: 'text-brand-700' }}
+          activeProps={{ className: 'text-primary-700' }}
         >
           <CalendarDays className="size-5" />
           {t.navActivity}
@@ -158,7 +158,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link
           to="/notifications"
           className="flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold"
-          activeProps={{ className: 'text-brand-700' }}
+          activeProps={{ className: 'text-primary-700' }}
         >
           <Bell className="size-5" />
           {t.navAlerts}

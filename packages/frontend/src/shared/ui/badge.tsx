@@ -14,15 +14,18 @@ const badgeVariants = cva(
         destructive:
           'bg-destructive text-white focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90',
         outline:
-          'border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
-        ghost: '[a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
+          'border-border text-foreground [a&]:hover:bg-muted [a&]:hover:text-foreground',
+        ghost: '[a&]:hover:bg-muted [a&]:hover:text-foreground',
         link: 'text-primary underline-offset-4 [a&]:hover:underline',
-        // Design's "tag" color set (bg-100/text-800 pairs off the ramps in index.css) -- status
-        // pills (SessionStatusBadge, RequestStatusBadge) pick one of these, not `default`.
-        brand: 'bg-brand-100 text-brand-800',
-        brand2: 'bg-brand2-100 text-brand2-800',
+        // Tag color set (bg-100/text-800 pairs off the ramps in index.css) -- status pills
+        // (SessionStatusBadge, RequestStatusBadge) pick one of these, not `default`. `accent`
+        // (teal) is for genuinely small, deliberate highlights per the 60/30/10 note in
+        // index.css -- don't reach for it as a default status color; `primary`/`neutral` cover
+        // most cases.
+        primary: 'bg-primary-100 text-primary-800',
+        accent: 'bg-accent-100 text-accent-800',
         neutral: 'bg-neutral-100 text-neutral-800',
-        'brand-outline': 'border-primary bg-transparent text-primary',
+        'primary-outline': 'border-primary bg-transparent text-primary',
       },
     },
     defaultVariants: {
