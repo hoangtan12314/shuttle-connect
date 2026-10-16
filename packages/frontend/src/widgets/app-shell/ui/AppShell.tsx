@@ -65,11 +65,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen flex-col md:flex-row">
       {/* Desktop sidebar */}
       <nav className="bg-card hidden w-60 flex-none flex-col gap-5 p-4 md:flex">
-        <div className="flex items-center gap-2">
-          <span className="bg-primary size-5 flex-none rounded" />
-          <span className="text-sm font-extrabold tracking-wide uppercase">
-            Shuttle Connect
-          </span>
+        <div>
+          <img
+            src="/shuttle-connect-logo-full.png"
+            alt="Shuttle Connect"
+            className="h-8 w-auto"
+          />
         </div>
 
         <Button asChild size="lg" className="justify-start">
@@ -112,10 +113,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile top bar */}
       <header className="bg-card flex min-h-11 items-center gap-2 p-3 md:hidden">
-        <span className="bg-primary size-5 flex-none rounded" />
-        <span className="mr-auto text-sm font-extrabold tracking-wide uppercase">
-          Shuttle Connect
-        </span>
+        <img
+          src="/shuttle-connect-logo-full.png"
+          alt="Shuttle Connect"
+          className="mr-auto h-6 w-auto"
+        />
         <LanguageSwitch language={language} onLanguageChange={setLanguage} />
         {isAuthenticated ? (
           <Link to="/profile" aria-label={t.profile}>
