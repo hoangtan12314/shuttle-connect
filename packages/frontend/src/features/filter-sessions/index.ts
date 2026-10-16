@@ -1,1 +1,2 @@
-// features/filter-sessions public API
+export { SessionFilters } from './ui/SessionFilters';
+export { useSessionFilters } from './model/use-session-filters';

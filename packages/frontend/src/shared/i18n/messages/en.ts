@@ -105,4 +105,11 @@ export const en = {
   browseErrorB: 'The connection dropped. Nothing’s lost — give it another try.',
   tryAgain: 'Try again',
   hostSession: 'Host a session',
+
+  todAll: 'All',
+  todAm: 'AM',
+  todPm: 'PM',
+  todEve: 'Eve',
+  anyDay: 'Any day',
+  noMatchT: 'No sessions match your filters',
 } as const;

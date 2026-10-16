@@ -5,3 +5,4 @@ export {
   formatTimeRange,
   formatRelativeMinutes,
 } from './format';
+export { areasForCity } from './city-areas';

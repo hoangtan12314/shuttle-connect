@@ -106,4 +106,11 @@ export const vi = {
     'Mạng đang chập chờn. Dữ liệu của bạn vẫn an toàn — thử lại nhé.',
   tryAgain: 'Thử lại',
   hostSession: 'Tạo buổi',
+
+  todAll: 'Cả ngày',
+  todAm: 'Sáng',
+  todPm: 'Chiều',
+  todEve: 'Tối',
+  anyDay: 'Mọi ngày',
+  noMatchT: 'Không có buổi khớp bộ lọc',
 } as const;
