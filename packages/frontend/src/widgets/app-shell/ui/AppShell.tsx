@@ -66,11 +66,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Desktop sidebar */}
       <nav className="bg-card hidden w-60 flex-none flex-col gap-5 p-4 md:flex">
         <div>
-          <img
-            src="/shuttle-connect-logo-full.png"
-            alt="Shuttle Connect"
-            className="h-8 w-auto"
-          />
+          <Link to="/">
+            <img
+              src="/shuttle-connect-logo-full.png"
+              alt="Shuttle Connect"
+              className="h-12 w-auto"
+            />
+          </Link>
         </div>
 
         <Button asChild size="lg" className="justify-start">
@@ -113,11 +115,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile top bar */}
       <header className="bg-card flex min-h-11 items-center gap-2 p-3 md:hidden">
-        <img
-          src="/shuttle-connect-logo-full.png"
-          alt="Shuttle Connect"
-          className="mr-auto h-6 w-auto"
-        />
+        <Link to="/">
+          <img
+            src="/shuttle-connect-logo-horizontal.png"
+            alt="Shuttle Connect"
+            className="mr-auto h-6 w-auto"
+          />
+        </Link>
         <LanguageSwitch language={language} onLanguageChange={setLanguage} />
         {isAuthenticated ? (
           <Link to="/profile" aria-label={t.profile}>
