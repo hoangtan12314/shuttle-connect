@@ -2,12 +2,18 @@ import { useSessions, SessionCard, useMySessions } from '@/entities/session';
 import { JoinSessionButton } from '@/features/join-session';
 import { useAuthUser } from '@/features/auth';
 import { SessionFilters, useSessionFilters } from '@/features/filter-sessions';
+import { useMe } from '@/entities/user';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Button } from '@/shared/ui/button';
 import { Link } from '@tanstack/react-router';
 import { useT } from '@/shared/i18n';
 import { CalendarX, RefreshCw, Plus, SlidersHorizontal } from 'lucide-react';
 import type { SessionOverview } from '@shuttle-connect/types';
+
+function matchesPrice(session: SessionOverview, maxPrice: number): boolean {
+  if (maxPrice === 0) return true;
+  return Math.min(session.priceMale, session.priceFemale) <= maxPrice;
+}
 
 function matchesDay(session: SessionOverview, day: number | null): boolean {
   if (day === null) return true;
@@ -33,7 +39,8 @@ function matchesTimeOfDay(
 }
 
 export function SessionBrowser() {
-  const { city, area, day, timeOfDay, clear } = useSessionFilters();
+  const { city, area, day, timeOfDay, maxPrice, fitOnly, clear } =
+    useSessionFilters();
   const { data, isLoading, isError, refetch } = useSessions(city, area);
   const { isAuthenticated } = useAuthUser();
   const t = useT();
@@ -41,14 +48,20 @@ export function SessionBrowser() {
   const { data: mySessions } = useMySessions(isAuthenticated);
   const hostedSessionIds = new Set(mySessions?.map((s) => s.id));
 
+  const { data: me } = useMe(isAuthenticated);
+  const myLevel = me?.skillLevel;
+
   const filtered = data?.filter(
     (session) =>
-      matchesDay(session, day) && matchesTimeOfDay(session, timeOfDay),
+      matchesDay(session, day) &&
+      matchesTimeOfDay(session, timeOfDay) &&
+      matchesPrice(session, maxPrice) &&
+      (!fitOnly || myLevel === undefined || myLevel >= session.minSkillLevel),
   );
 
   return (
     <div className="flex flex-col gap-4">
-      <SessionFilters />
+      <SessionFilters myLevel={myLevel} />
 
       {isLoading && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -113,6 +126,7 @@ export function SessionBrowser() {
             <SessionCard
               key={session.id}
               session={session}
+              myLevel={myLevel}
               action={
                 hostedSessionIds.has(session.id) ? (
                   <Link

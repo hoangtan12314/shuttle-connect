@@ -28,8 +28,9 @@ export function formatDayStrip(
 
 /** e.g. formatDateTime('2026-10-17T18:00:00.000Z', 'en') -> "Sat, Oct 17, 6:00 PM". Session
  *  timestamps are full ISO 8601 strings (see ListSessionsByDistrictDto's @IsISO8601()), not bare
- *  "HH:mm" -- for a single timestamp, e.g. SessionOverview's startTime (the browse list doesn't
- *  get endTime at all, only SessionItemResponse -- the single-session detail shape -- does). */
+ *  "HH:mm" -- for a single timestamp where there's no end time to show alongside it (e.g. a
+ *  notification or activity row). For a session card/list item, prefer formatSessionWindow
+ *  below -- SessionOverview carries endTime too, not just startTime. */
 export function formatDateTime(isoString: string, language: Language): string {
   return new Intl.DateTimeFormat(localeFor[language], {
     weekday: 'short',
@@ -41,8 +42,9 @@ export function formatDateTime(isoString: string, language: Language): string {
 }
 
 /** e.g. formatTimeRange('2026-10-17T18:00:00.000Z', '2026-10-17T20:00:00.000Z', 'en')
- *  -> "6:00 PM - 8:00 PM". For SessionItemResponse (has both startTime/endTime, unlike the
- *  browse list's SessionOverview) -- the session-detail page, not the browse card. */
+ *  -> "6:00 PM - 8:00 PM". Time only, no date -- for a context that already shows the date
+ *  separately (e.g. next to a day-strip selection). For a session card/list item showing both
+ *  date and time range in one line, prefer formatSessionWindow below. */
 export function formatTimeRange(
   startTime: string,
   endTime: string,
@@ -53,6 +55,28 @@ export function formatTimeRange(
     minute: '2-digit',
   });
   return `${timeFmt.format(new Date(startTime))} - ${timeFmt.format(new Date(endTime))}`;
+}
+
+/** e.g. formatSessionWindow('2026-10-17T18:00:00.000Z', '2026-10-17T20:00:00.000Z', 'en')
+ *  -> "Sat, Oct 17, 6:00 PM - 8:00 PM". Date once, both times -- the browse/activity card format,
+ *  now that SessionOverview carries endTime (see SessionMapper.toOverview). */
+export function formatSessionWindow(
+  startTime: string,
+  endTime: string,
+  language: Language,
+): string {
+  const locale = localeFor[language];
+  const dateFmt = new Intl.DateTimeFormat(locale, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+  const timeFmt = new Intl.DateTimeFormat(locale, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+  const start = new Date(startTime);
+  return `${dateFmt.format(start)}, ${timeFmt.format(start)} - ${timeFmt.format(new Date(endTime))}`;
 }
 
 /** e.g. formatRelativeMinutes(41) -> "41 min ago" / "41 phút trước". */

@@ -1,8 +1,8 @@
-// features/filter-sessions/ui: district select + 7-day strip + time-of-day segmented control,
-// driven by the model/use-session-filters store. Max-price and "only my level" from the design
-// aren't implemented -- SessionOverview (the browse list's response shape) carries neither a
-// price nor a minSkillLevel field, only SessionItemResponse (the single-session detail shape)
-// would, so there's nothing to filter on yet without a backend change.
+// features/filter-sessions/ui: district select + 7-day strip + time-of-day segmented control +
+// max-price segmented control + "only my level" toggle, driven by the model/use-session-filters
+// store. Price/level filtering needs SessionOverview's priceMale/priceFemale/minSkillLevel, which
+// only exist as of the server's SessionMapper.toOverview fix -- see the plan doc's Phase 2
+// deviation note for the backstory.
 import {
   Select,
   SelectContent,
@@ -11,12 +11,14 @@ import {
   SelectValue,
 } from '@/shared/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
+import { Toggle } from '@/shared/ui/toggle';
 import { Button } from '@/shared/ui/button';
-import { Area } from '@shuttle-connect/types';
+import { Area, SkillLevel } from '@shuttle-connect/types';
 import { useT, useLanguageStore, areaNames } from '@/shared/i18n';
 import { formatDayStrip, areasForCity } from '@/shared/lib';
 import {
   useSessionFilters,
+  PRICE_PRESETS,
   type TimeOfDay,
 } from '../model/use-session-filters';
 import { cn } from 'cn';
@@ -27,13 +29,26 @@ const next7Days = Array.from({ length: 7 }, (_, i) => {
   return date;
 });
 
-export function SessionFilters() {
+export function SessionFilters({ myLevel }: { myLevel?: SkillLevel }) {
   const t = useT();
   const language = useLanguageStore((state) => state.language);
-  const { city, area, day, timeOfDay, setArea, setDay, setTimeOfDay, clear } =
-    useSessionFilters();
+  const {
+    city,
+    area,
+    day,
+    timeOfDay,
+    maxPrice,
+    fitOnly,
+    setArea,
+    setDay,
+    setTimeOfDay,
+    setMaxPrice,
+    setFitOnly,
+    clear,
+  } = useSessionFilters();
 
-  const isFiltered = day !== null || timeOfDay !== 'all';
+  const isFiltered =
+    day !== null || timeOfDay !== 'all' || maxPrice !== 0 || fitOnly;
 
   return (
     <div className="flex flex-col gap-3">
@@ -61,6 +76,27 @@ export function SessionFilters() {
           <ToggleGroupItem value="pm">{t.todPm}</ToggleGroupItem>
           <ToggleGroupItem value="eve">{t.todEve}</ToggleGroupItem>
         </ToggleGroup>
+
+        <ToggleGroup
+          type="single"
+          value={String(maxPrice)}
+          onValueChange={(value) => value && setMaxPrice(Number(value))}
+        >
+          {PRICE_PRESETS.map((price) => (
+            <ToggleGroupItem key={price} value={String(price)}>
+              {price === 0 ? t.anyPrice : `≤ ${price / 1000}k`}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+
+        <Toggle
+          variant="outline"
+          pressed={fitOnly}
+          disabled={myLevel === undefined}
+          onPressedChange={setFitOnly}
+        >
+          {t.fitOnlyL}
+        </Toggle>
 
         {isFiltered && (
           <Button variant="ghost" size="sm" onClick={clear}>

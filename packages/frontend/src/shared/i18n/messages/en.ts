@@ -112,4 +112,6 @@ export const en = {
   todEve: 'Eve',
   anyDay: 'Any day',
   noMatchT: 'No sessions match your filters',
+  anyPrice: 'Any',
+  belowLevel: 'Needs a higher level',
 } as const;

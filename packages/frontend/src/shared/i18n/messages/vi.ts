@@ -113,4 +113,6 @@ export const vi = {
   todEve: 'Tối',
   anyDay: 'Mọi ngày',
   noMatchT: 'Không có buổi khớp bộ lọc',
+  anyPrice: 'Tất cả',
+  belowLevel: 'Cần trình cao hơn',
 } as const;
