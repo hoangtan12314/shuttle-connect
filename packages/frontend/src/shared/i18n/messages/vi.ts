@@ -97,4 +97,13 @@ export const vi = {
   clear: 'Xóa bộ lọc',
   raceNear: 'Còn chỗ gần bạn',
   backList: 'Về danh sách',
+
+  browseEmptyT: 'Chưa có buổi nào ở đây',
+  browseEmptyB:
+    'Thử quận khác — hoặc tự mở buổi để người chơi quanh đây tìm thấy bạn.',
+  browseErrorT: 'Không tải được danh sách',
+  browseErrorB:
+    'Mạng đang chập chờn. Dữ liệu của bạn vẫn an toàn — thử lại nhé.',
+  tryAgain: 'Thử lại',
+  hostSession: 'Tạo buổi',
 } as const;

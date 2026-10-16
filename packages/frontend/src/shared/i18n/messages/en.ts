@@ -97,4 +97,12 @@ export const en = {
   clear: 'Clear filters',
   raceNear: 'Still open near you',
   backList: 'Back to results',
+
+  browseEmptyT: 'No sessions here yet',
+  browseEmptyB:
+    'Try another district — or host one so nearby players can find you.',
+  browseErrorT: 'Couldn’t load sessions',
+  browseErrorB: 'The connection dropped. Nothing’s lost — give it another try.',
+  tryAgain: 'Try again',
+  hostSession: 'Host a session',
 } as const;
