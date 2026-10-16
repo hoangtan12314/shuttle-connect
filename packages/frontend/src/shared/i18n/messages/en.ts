@@ -8,6 +8,11 @@ export const en = {
   undo: 'Undo',
   createSession: 'Create session',
 
+  navBrowse: 'Browse',
+  navActivity: 'Activity',
+  navHost: 'Host',
+  navAlerts: 'Alerts',
+
   posterH: 'Who’s on\ncourt\ntonight?',
   posterS: 'Find open badminton sessions near you — even on a Tuesday night.',
 

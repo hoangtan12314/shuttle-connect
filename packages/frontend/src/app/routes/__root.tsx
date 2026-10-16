@@ -1,5 +1,5 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router';
-import { AppHeader } from '@/widgets/app-header';
+import { AppShell } from '@/widgets/app-shell';
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -7,9 +7,8 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   return (
-    <div>
-      <AppHeader />
+    <AppShell>
       <Outlet />
-    </div>
+    </AppShell>
   );
 }

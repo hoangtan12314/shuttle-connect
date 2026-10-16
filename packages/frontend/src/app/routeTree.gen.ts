@@ -10,12 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as CallbackRouteImport } from './routes/callback'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as SessionsSessionIdRouteImport } from './routes/sessions.$sessionId'
+import { Route as SessionsNewRouteImport } from './routes/sessions.new'
+import { Route as SessionsSessionIdManageRouteImport } from './routes/sessions.$sessionId.manage'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ActivityRoute = ActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CallbackRoute = CallbackRouteImport.update({
@@ -23,40 +33,104 @@ const CallbackRoute = CallbackRouteImport.update({
   path: '/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SessionsSessionIdRoute = SessionsSessionIdRouteImport.update({
   id: '/sessions/$sessionId',
   path: '/sessions/$sessionId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SessionsNewRoute = SessionsNewRouteImport.update({
+  id: '/sessions/new',
+  path: '/sessions/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SessionsSessionIdManageRoute = SessionsSessionIdManageRouteImport.update({
+  id: '/manage',
+  path: '/manage',
+  getParentRoute: () => SessionsSessionIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/activity': typeof ActivityRoute
   '/callback': typeof CallbackRoute
-  '/sessions/$sessionId': typeof SessionsSessionIdRoute
+  '/notifications': typeof NotificationsRoute
+  '/profile': typeof ProfileRoute
+  '/sessions/$sessionId': typeof SessionsSessionIdRouteWithChildren
+  '/sessions/new': typeof SessionsNewRoute
+  '/sessions/$sessionId/manage': typeof SessionsSessionIdManageRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/activity': typeof ActivityRoute
   '/callback': typeof CallbackRoute
-  '/sessions/$sessionId': typeof SessionsSessionIdRoute
+  '/notifications': typeof NotificationsRoute
+  '/profile': typeof ProfileRoute
+  '/sessions/$sessionId': typeof SessionsSessionIdRouteWithChildren
+  '/sessions/new': typeof SessionsNewRoute
+  '/sessions/$sessionId/manage': typeof SessionsSessionIdManageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/activity': typeof ActivityRoute
   '/callback': typeof CallbackRoute
-  '/sessions/$sessionId': typeof SessionsSessionIdRoute
+  '/notifications': typeof NotificationsRoute
+  '/profile': typeof ProfileRoute
+  '/sessions/$sessionId': typeof SessionsSessionIdRouteWithChildren
+  '/sessions/new': typeof SessionsNewRoute
+  '/sessions/$sessionId/manage': typeof SessionsSessionIdManageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/callback' | '/sessions/$sessionId'
+  fullPaths:
+    | '/'
+    | '/activity'
+    | '/callback'
+    | '/notifications'
+    | '/profile'
+    | '/sessions/$sessionId'
+    | '/sessions/new'
+    | '/sessions/$sessionId/manage'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/callback' | '/sessions/$sessionId'
-  id: '__root__' | '/' | '/callback' | '/sessions/$sessionId'
+  to:
+    | '/'
+    | '/activity'
+    | '/callback'
+    | '/notifications'
+    | '/profile'
+    | '/sessions/$sessionId'
+    | '/sessions/new'
+    | '/sessions/$sessionId/manage'
+  id:
+    | '__root__'
+    | '/'
+    | '/activity'
+    | '/callback'
+    | '/notifications'
+    | '/profile'
+    | '/sessions/$sessionId'
+    | '/sessions/new'
+    | '/sessions/$sessionId/manage'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ActivityRoute: typeof ActivityRoute
   CallbackRoute: typeof CallbackRoute
-  SessionsSessionIdRoute: typeof SessionsSessionIdRoute
+  NotificationsRoute: typeof NotificationsRoute
+  ProfileRoute: typeof ProfileRoute
+  SessionsSessionIdRoute: typeof SessionsSessionIdRouteWithChildren
+  SessionsNewRoute: typeof SessionsNewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -68,11 +142,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/activity': {
+      id: '/activity'
+      path: '/activity'
+      fullPath: '/activity'
+      preLoaderRoute: typeof ActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/callback': {
       id: '/callback'
       path: '/callback'
       fullPath: '/callback'
       preLoaderRoute: typeof CallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sessions/$sessionId': {
@@ -82,13 +177,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SessionsSessionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sessions/new': {
+      id: '/sessions/new'
+      path: '/sessions/new'
+      fullPath: '/sessions/new'
+      preLoaderRoute: typeof SessionsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sessions/$sessionId/manage': {
+      id: '/sessions/$sessionId/manage'
+      path: '/manage'
+      fullPath: '/sessions/$sessionId/manage'
+      preLoaderRoute: typeof SessionsSessionIdManageRouteImport
+      parentRoute: typeof SessionsSessionIdRoute
+    }
   }
 }
 
+interface SessionsSessionIdRouteChildren {
+  SessionsSessionIdManageRoute: typeof SessionsSessionIdManageRoute
+}
+
+const SessionsSessionIdRouteChildren: SessionsSessionIdRouteChildren = {
+  SessionsSessionIdManageRoute: SessionsSessionIdManageRoute,
+}
+
+const SessionsSessionIdRouteWithChildren =
+  SessionsSessionIdRoute._addFileChildren(SessionsSessionIdRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ActivityRoute: ActivityRoute,
   CallbackRoute: CallbackRoute,
-  SessionsSessionIdRoute: SessionsSessionIdRoute,
+  NotificationsRoute: NotificationsRoute,
+  ProfileRoute: ProfileRoute,
+  SessionsSessionIdRoute: SessionsSessionIdRouteWithChildren,
+  SessionsNewRoute: SessionsNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -8,6 +8,13 @@ export const vi = {
   undo: 'Hoàn tác',
   createSession: 'Tạo buổi',
 
+  // Nav labels (widgets/app-shell) -- distinct from the page titles below (navActivity vs
+  // activityT, navAlerts vs notifsT): the design uses shorter wording in the nav itself.
+  navBrowse: 'Khám phá',
+  navActivity: 'Hoạt động',
+  navHost: 'Tạo buổi',
+  navAlerts: 'Thông báo',
+
   posterH: 'Tối nay\nđánh cầu\nvới ai?',
   posterS: 'Tìm buổi cầu lông còn chỗ gần bạn — kể cả tối thứ Ba.',
 
