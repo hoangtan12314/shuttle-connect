@@ -49,9 +49,13 @@ export interface SessionOverview {
   id: string;
   status: SessionStatus;
   startTime: string;
+  endTime: string;
   slotsRemaining: number;
   slotsTotal: number;
+  priceMale: number;
+  priceFemale: number;
   shuttleType: ShuttleType;
+  minSkillLevel: SkillLevel;
   court: {
     id: string;
     name: string;

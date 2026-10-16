@@ -89,9 +89,13 @@ export class SessionMapper {
       id: item.PK.replace('SESSION#', ''),
       status: item.status,
       startTime: new Date(item.start_time).toISOString(),
+      endTime: new Date(item.end_time).toISOString(),
       slotsRemaining: item.slots_remaining,
       slotsTotal: item.slots_total,
+      priceMale: item.price_male,
+      priceFemale: item.price_female,
       shuttleType: item.shuttle_type,
+      minSkillLevel: item.min_skill_level,
       court: {
         id: item.court_id,
         name: item.court_name,
