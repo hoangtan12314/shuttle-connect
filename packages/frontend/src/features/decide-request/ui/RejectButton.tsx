@@ -4,20 +4,23 @@ import {
   type RequestItemResponse,
 } from '@shuttle-connect/types';
 import { useDecideRequest } from '../api/use-decide-request';
+import { useT } from '@/shared/i18n';
 
 export function RejectButton({ request }: { request: RequestItemResponse }) {
   const { mutate, isPending } = useDecideRequest();
+  const t = useT();
 
   const disabled = request.status !== RequestStatus.PENDING || isPending;
 
   const label = isPending
-    ? 'Rejecting...'
+    ? t.rejectingBtn
     : request.status === RequestStatus.REJECTED
-      ? 'Rejected'
-      : 'Reject';
+      ? t.rejectedBtn
+      : t.reject;
 
   return (
     <Button
+      variant="outline"
       disabled={disabled}
       onClick={() =>
         mutate({

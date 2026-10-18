@@ -7,6 +7,7 @@ import { useJoinSession } from '../api/use-join-session';
 import { Button } from '@/shared/ui/button';
 import { useMyRequests } from '@/entities/request';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { useT, sessionStatusNames, useLanguageStore } from '@/shared/i18n';
 
 export function JoinSessionButton({
   session,
@@ -18,6 +19,8 @@ export function JoinSessionButton({
   const { mutate, isPending } = useJoinSession();
   const { data: myRequests, isLoading: isMyRequestLoading } =
     useMyRequests(isAuthenticated);
+  const t = useT();
+  const language = useLanguageStore((state) => state.language);
 
   const existingRequest = myRequests?.find((r) => r.session.id === session.id);
   const alreadyRequested =
@@ -28,14 +31,14 @@ export function JoinSessionButton({
     session.status !== SessionStatus.OPEN || isPending || alreadyRequested;
 
   const label = isPending
-    ? 'Joining...'
+    ? t.joiningBtn
     : alreadyRequested
       ? existingRequest?.status === RequestStatus.PENDING
-        ? 'Requested'
-        : 'Joined'
+        ? t.requestedBtn
+        : t.joinedBtn
       : session.status === SessionStatus.OPEN
-        ? 'Join'
-        : 'Full';
+        ? t.joinBtn
+        : sessionStatusNames[SessionStatus.FULL][language];
 
   if (isMyRequestLoading) {
     return <Skeleton className="h-9 w-full" />;

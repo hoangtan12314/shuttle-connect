@@ -17,7 +17,7 @@ export function useJoinSession() {
         body: JSON.stringify(input),
       }),
     onSuccess: async () => {
-      toast.success('Request already sent');
+      toast.success('Request sent');
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: sessionKeys.all }),
         queryClient.invalidateQueries({ queryKey: requestKeys.mine() }),

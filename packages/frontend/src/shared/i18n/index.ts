@@ -9,4 +9,5 @@ export {
   skillLevelDescriptions,
   shuttleTypeNames,
   sessionStatusNames,
+  requestStatusNames,
 } from './messages/enums';

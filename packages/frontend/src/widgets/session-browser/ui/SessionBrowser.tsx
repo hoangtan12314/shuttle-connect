@@ -127,6 +127,7 @@ export function SessionBrowser() {
               key={session.id}
               session={session}
               myLevel={myLevel}
+              linkToDetail
               action={
                 hostedSessionIds.has(session.id) ? (
                   <Link

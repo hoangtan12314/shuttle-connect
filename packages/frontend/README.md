@@ -1,31 +1,37 @@
 # Shuttle Connect — frontend
 
-React 19 + Vite, organized with **Feature-Sliced Design (FSD)**. Full plan, rationale and build
-order: `/Users/admin/.claude/plans/check-for-the-flow-keen-flask.md` (local to this machine, not in
-the repo). Backend API contract: `@shuttle-connect/types` (`packages/types/src`).
+React 19 + Vite, organized with **Feature-Sliced Design (FSD)**. Scaffold build order (now
+historical — the scaffold is long finished): `/Users/admin/.claude/plans/check-for-the-flow-keen-flask.md`.
+Current work is a UI redesign against a design artifact, tracked at
+`/Users/admin/.claude/plans/warm-scribbling-parnas.md` (both local to this machine, not in the
+repo). Backend API contract: `@shuttle-connect/types` (`packages/types/src`).
 
 ## Current status (update this as files go from placeholder to real)
 
-Everything below is **scaffolded and verified working** (`pnpm run build` and `pnpm run lint` both
-pass clean): dependencies installed, shadcn/ui primitives generated into `src/shared/ui/`, Tailwind
-v4 theme, TanStack Router plugin wired into `vite.config.ts`, Vitest + MSW + RTL, Playwright,
-steiger, Prettier + lint-staged, `infra/web.ts` env injection.
+Past the initial scaffold now — most of the app is real, working business logic, not placeholder
+comments. `pnpm run build`, `pnpm run lint`, and `pnpm run lint:fsd` all pass clean. Check this
+list before assuming a file is still a stub; it changes incrementally across sessions.
 
-Every other file — everything under `app/`, `pages/`, `widgets/`, `features/`, `entities/`,
-`shared/api`, `shared/config` — is a **one-line comment placeholder**, not implemented. Written so
-far, in order:
+**Real and functional:**
+- `shared/api`, `shared/config`, `shared/i18n` (vi/en), `shared/lib` (formatters), `shared/ui`
+  (shadcn primitives + the app's design tokens — see `app/styles/index.css`)
+- `entities/session`, `entities/request`, `entities/user` (`useMe` — `UserAvatar.tsx` is still a
+  placeholder, nothing currently renders it standalone)
+- `features/auth`, `features/join-session`, `features/decide-request`, `features/filter-sessions`
+- `widgets/app-shell`, `widgets/session-browser`, `widgets/host-requests-panel`,
+  `widgets/session-detail`
+- `pages/browse-sessions`, `pages/session-detail`
+- Routes: `/`, `/sessions/$sessionId`, `/callback` are real; `/activity`, `/notifications`,
+  `/profile`, `/sessions/new`, `/sessions/$sessionId/manage` are intentional "coming soon" stubs
+  (their own route files, not yet backed by a `pages/` slice)
 
-- [x] `shared/api/client.ts` — `ApiError` class (done)
-- [ ] `shared/api/client.ts` — `apiRequest<T>()` (**next**: unwrap `ApiSuccessResponse<T>` /
-      throw `ApiError` on `ApiErrorResponse`; Authorization header deliberately deferred until
-      `features/auth` exists)
-- [ ] `shared/config/env.ts` — typed `import.meta.env` access
-- [ ] `entities/session` — first real FSD slice (`useSessions`, `SessionCard`)
-- [ ] `app/main.tsx` + `app/routes/__root.tsx` + `app/routes/index.tsx` — enough to render
-      something in the browser
-- [ ] everything else
+**Still placeholder (one-line comment, not implemented):**
+- `entities/court` (whole slice — `useCourts`, `CourtOption`)
+- `features/create-session`, `features/update-profile` (whole slices)
+- `pages/create-session`, `pages/profile`
 
-Pick up exactly here on a fresh session: write `apiRequest<T>` in `shared/api/client.ts` next.
+Pick up here next: `features/create-session` + `pages/create-session` (Phase 4 of the UI-refactor
+plan — host flows), which also needs `entities/court` for the district→court picker.
 
 ## Architecture: Feature-Sliced Design
 
@@ -85,11 +91,15 @@ pnpm run format        # prettier --write .
 From the repo root, `pnpm run sst:dev` starts the real backend + this frontend together, with
 `VITE_API_URL`/`VITE_COGNITO_*` injected automatically (`infra/web.ts`).
 
-## Known rough edges from the current scaffold
+## Known rough edges
 
-- Route files under `app/routes/` are empty placeholders — `pnpm run dev` will warn "does not
-  export a Route" for each until you add `createFileRoute(...)`. Expected, not a bug.
 - shadcn's registry now publishes `cn` and `radix-ui` as real npm packages instead of generating a
   local `lib/utils.ts` — don't go looking for one.
 - MSW 3.x renamed `onUnhandledRequest` → `onUnhandledFrame` (already correct in
   `src/test/setup.ts`, worth knowing if a guide/example online still shows the old name).
+- `pnpm run lint` has a standing baseline of 7 `react-refresh/only-export-components` errors, one
+  per "coming soon" stub route (`__root.tsx`, `activity.tsx`, `callback.tsx`, `notifications.tsx`,
+  `profile.tsx`, `sessions.$sessionId.manage.tsx`, `sessions.new.tsx`) — each defines its page
+  component inline in the route file instead of a separate module. Pre-existing, not introduced by
+  whatever you're currently working on; confirm with `git stash && pnpm run lint` before assuming
+  a change caused it.

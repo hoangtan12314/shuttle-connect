@@ -17,17 +17,23 @@ import {
 } from '@/shared/i18n';
 import { formatPrice, formatSessionWindow } from '@/shared/lib';
 import { Lock } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 
 export function SessionCard({
   session,
   action,
   myLevel,
+  linkToDetail = false,
 }: {
   session: SessionOverview;
   action?: React.ReactNode;
   /** The viewer's own skill level, if known -- dims the level tag into a warning when the
    *  session's minimum is above it. Omit when signed out or the level hasn't loaded yet. */
   myLevel?: SkillLevel;
+  /** Wraps the header/content (not the action slot, to avoid nesting an interactive action
+   *  inside an anchor) in a link to /sessions/:id. Only the browse grid wants this -- the
+   *  session-detail page itself already renders this same component for its own id. */
+  linkToDetail?: boolean;
 }) {
   const {
     court,
@@ -50,8 +56,8 @@ export function SessionCard({
   const isBelowLevel = myLevel !== undefined && myLevel < minSkillLevel;
   const samePrice = priceMale === priceFemale;
 
-  return (
-    <Card>
+  const header = (
+    <>
       <CardHeader className="flex items-center justify-between">
         <CardTitle>{court.name}</CardTitle>
         <SessionStatusBadge status={status} />
@@ -78,6 +84,22 @@ export function SessionCard({
             : `${t.priceM} ${formatPrice(priceMale, language)} · ${t.priceF} ${formatPrice(priceFemale, language)}`}
         </span>
       </CardContent>
+    </>
+  );
+
+  return (
+    <Card>
+      {linkToDetail ? (
+        <Link
+          to="/sessions/$sessionId"
+          params={{ sessionId: session.id }}
+          className="contents"
+        >
+          {header}
+        </Link>
+      ) : (
+        header
+      )}
       {action && <CardFooter>{action}</CardFooter>}
     </Card>
   );

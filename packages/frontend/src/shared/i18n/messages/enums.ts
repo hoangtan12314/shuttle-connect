@@ -4,6 +4,7 @@
 import {
   Area,
   City,
+  RequestStatus,
   SessionStatus,
   ShuttleType,
   SkillLevel,
@@ -54,6 +55,15 @@ export const sessionStatusNames: Record<
   [SessionStatus.OPEN]: { vi: 'Còn chỗ', en: 'Open' },
   [SessionStatus.FULL]: { vi: 'Đã đầy', en: 'Full' },
   [SessionStatus.CANCELLED]: { vi: 'Đã hủy', en: 'Cancelled' },
+};
+
+export const requestStatusNames: Record<
+  RequestStatus,
+  { vi: string; en: string }
+> = {
+  [RequestStatus.PENDING]: { vi: 'Chờ duyệt', en: 'Pending' },
+  [RequestStatus.APPROVED]: { vi: 'Đã duyệt', en: 'Approved' },
+  [RequestStatus.REJECTED]: { vi: 'Không được duyệt', en: 'Not approved' },
 };
 
 // Brand names -- not translated (same string both languages), ported from the design's SH
