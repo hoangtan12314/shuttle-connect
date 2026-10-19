@@ -27,7 +27,7 @@ export class CourtRepositoryDynamoDB implements CourtRepository {
       }),
     );
 
-    return (result.Items ?? []).map(CourtMapper.toOverview)
+    return (result.Items ?? []).map(CourtMapper.toOverview);
   }
 
   async findById(id: string): Promise<CourtItemResponse | null> {
@@ -41,10 +41,8 @@ export class CourtRepositoryDynamoDB implements CourtRepository {
     return result.Item ? CourtMapper.toResponse(result.Item) : null;
   }
 
-  async create(court: Court): Promise<void> {
+  async create(court: Court): Promise<CourtItemResponse> {
     const item = CourtMapper.toPersistence(court);
-
-    console.log('Item: ', item);
 
     await this.client.send(
       new PutCommand({
@@ -53,5 +51,8 @@ export class CourtRepositoryDynamoDB implements CourtRepository {
         ConditionExpression: 'attribute_not_exists(PK)',
       }),
     );
+
+    // No second read -- CourtItemResponse's fields are a 1:1 match with the Court entity itself.
+    return CourtMapper.toResponse(court);
   }
 }

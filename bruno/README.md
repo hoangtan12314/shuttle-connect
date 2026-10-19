@@ -98,30 +98,36 @@ Auth            ->  Login, Login as Player     sets {{idToken}}, {{idToken2}}
 Courts          ->  Create Court               sets {{courtId}}
 Sessions        ->  Create Session             needs {{courtId}}; sets {{sessionId}}, {{userId}}
 Requests        ->  Create Request (player)    needs {{sessionId}}; sets {{playerId}}
-Host Decisions  ->  Approve (host)              needs {{sessionId}}, {{playerId}}
+Host Decisions  ->  Approve -> Undo Approval -> Reject -> Undo Rejection (host),
+                    with a not-host/still-pending negative case after each undo
 User            ->  Get/Update Profile          the host's own profile
 ```
 
+`Host Decisions` runs one request through every decision state in sequence: `PENDING` ->
+`APPROVED` (**Approve Request**) -> back to `PENDING` (**Undo Approval**, checks the slot
+is given back) -> `REJECTED` (**Reject Request**) -> back to `PENDING` (**Undo Rejection**).
+**Undo Decision - not host** and **Undo Decision - still pending** are negative cases
+slotted into that chain, not separate setup.
+
 ## What's not implemented yet
 
-These requests are written against routes that don't exist on the server yet -- each
-one's `docs` block says what's expected once it's built, and most point back at the plan.
+**(2026-10-18: this section was badly stale -- every route it used to list here
+(`GET /sessions?city=&district=`, `GET /sessions/mine`, `GET /courts?city=&district=`,
+the `POST /requests` duplicate/own-session checks, `GET /requests/mine`, both user profile
+routes, and all of `Host Decisions`) is implemented and its matching `.bru` request's
+`docs` block already describes the real behavior, not a planned one. Corrected while adding
+the Undo requests below, since several of those `docs` blocks still read "Implemented,
+blocked by the same `SessionModule` DI gap..." -- that gap is also fixed; the requests
+pass as written, the leftover wording is just undone doc cleanup, not a live bug.)**
 
-| Folder | Request | Route |
-|---|---|---|
-| Sessions | `List Sessions` | `GET /sessions?city=&district=` (currently `listAll()` stub, returns `[]`) |
-| Sessions | `My Hosted Sessions` | `GET /sessions/mine` |
-| Courts | `List Courts by Location`, `- mismatched pair` | `GET /courts?city=&district=` |
-| Requests | `Join Own Session` | 400 check inside `POST /requests` (D4) |
-| Requests | `Create Request - duplicate` | 409 fix inside `POST /requests` (D3; currently 500) |
-| Requests | `My Requests` | `GET /requests/mine` |
-| User | `Get Profile`, `Update Profile` | `GET /users/me`, `PATCH /users/me` -- no controller or Lambda exist yet |
-| Host Decisions | *(whole folder)* | `GET /sessions/:id/requests`, `PATCH /sessions/:id/requests/:userId` |
+Still actually unimplemented, per the plan (`warm-scribbling-parnas.md`'s Phase 3.5 and
+backend follow-ups): withdrawing a join request (`WITHDRAWN` status, requester-initiated --
+not to be confused with **Undo Approval**/**Undo Rejection** below, which are the *host*
+reversing their own decision, already built), editing or cancelling a session, and
+`homeArea` on the user profile. No `.bru` requests exist for these yet since there's no
+route to point them at.
 
-`GSI1`/`GSI2` are already populated correctly by every create (index redesign) -- these
-are pure read/write additions on top of data that's already shaped right. Verify GSI1
-directly with the AWS CLI snippet in **List Sessions**' docs if you want to check before
-the route exists.
+`GSI1`/`GSI2` are already populated correctly by every create (index redesign).
 
 ## What the already-working negative cases pin down
 

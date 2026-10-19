@@ -1,0 +1,38 @@
+meta {
+  name: Undo Rejection
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{baseUrl}}/sessions/{{sessionId}}/requests/{{playerId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "status": "PENDING"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.status: eq PENDING
+}
+
+docs {
+  Depends on **Reject Request** having run. Same route/DTO as **Undo Approval**, but takes
+  `UndoDecisionUseCase`'s other branch since the request is currently `REJECTED`, not
+  `APPROVED`.
+
+  `revertRejection` is a plain conditional `UpdateCommand`, not a transaction -- rejected
+  requests never touched `slots_remaining`, so undoing one doesn't need to touch the
+  session item either:
+  ```
+  request item:  SET #s = :pending  IF #s = :rejected
+  ```
+  No "Get Session After" counterpart for this one, unlike **Get Session After Undo
+  Approval** -- there's no slot count to check, since none ever changed.
+}

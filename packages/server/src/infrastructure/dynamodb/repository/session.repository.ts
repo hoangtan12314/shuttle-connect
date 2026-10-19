@@ -23,7 +23,7 @@ export class SessionRepositoryDynamoDB implements SessionRepository {
     @Inject(DYNAMODB_CLIENT) private client: DynamoDBDocumentClient,
     @Inject(TABLE_NAME) private tableName: string,
   ) {}
-  
+
   async listSessionsByDistrict(
     city: City,
     area: Area,
@@ -77,7 +77,11 @@ export class SessionRepositoryDynamoDB implements SessionRepository {
     return (result.Items ?? []).map(SessionMapper.toOverview);
   }
 
-  async create(session: Session, court: CourtItemResponse, host: UserItemResponse): Promise<void> {
+  async create(
+    session: Session,
+    court: CourtItemResponse,
+    host: UserItemResponse,
+  ): Promise<SessionItemResponse> {
     const item = SessionMapper.toPersistence(session);
 
     const denormalizeData = {
@@ -103,5 +107,10 @@ export class SessionRepositoryDynamoDB implements SessionRepository {
         ConditionExpression: 'attribute_not_exists(PK)',
       }),
     );
+
+    // No second read -- `court`/`host` are exactly what was just denormalized onto the item, and
+    // `session` is the entity that produced it; PutCommand can't hand back "the new item" the way
+    // UpdateCommand's ReturnValues: 'ALL_NEW' can (an UpdateItem-only feature), and doesn't need to.
+    return SessionMapper.toResponse(session, court, host);
   }
 }

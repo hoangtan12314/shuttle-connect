@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateRequestInput, SessionStatus } from '@shuttle-connect/types';
+import { CreateRequestInput, RequestItemResponse, SessionStatus } from '@shuttle-connect/types';
 import {
   SESSION_REPOSITORY,
   SessionNotOpenError,
@@ -17,7 +17,7 @@ export class CreateRequestUseCase {
     @Inject(USER_REPOSITORY) private userRepository: UserRepository,
   ) {}
 
-  async execute(userId: string, input: CreateRequestInput): Promise<Request> {
+  async execute(userId: string, input: CreateRequestInput): Promise<RequestItemResponse> {
     const session = await this.sessionRepository.findById(input.sessionId);
 
     if (!session) {
@@ -43,8 +43,6 @@ export class CreateRequestUseCase {
       sessionId: input.sessionId,
     });
 
-    await this.requestRepository.create(requestToBeCreated, session, user);
-
-    return requestToBeCreated;
+    return this.requestRepository.create(requestToBeCreated, session, user);
   }
 }

@@ -23,8 +23,8 @@ assert {
 }
 
 docs {
-  Implemented, blocked by the same `SessionModule` DI gap -- see **List Session Requests
-  (host)**'s docs. Same route as **Approve Request**, run again. The request is no longer
+  Implemented and passing (see **List Session Requests (host)**'s docs for the DI-gap
+  history). Same route as **Approve Request**, run again. The request is no longer
   `PENDING` (the first approval already moved it to `APPROVED`), so `DecideRequestUseCase`
   catches this with its own explicit `getBySessionAndUser` + status check *before*
   attempting another write -- a second run must *not* decrement `slots_remaining` again,

@@ -1,0 +1,45 @@
+meta {
+  name: Undo Approval
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/sessions/{{sessionId}}/requests/{{playerId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "status": "PENDING"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.status: eq PENDING
+}
+
+docs {
+  Depends on **Approve Request** having run (the request must be `APPROVED` for there to
+  be anything to undo). Runs as the **host**, same route/DTO as **Approve Request** --
+  `PATCH /sessions/:id/requests/:userId` -- just with `"status": "PENDING"` instead of
+  `"APPROVED"`/`"REJECTED"`. `SessionController.decideRequest` special-cases that value and
+  routes to `UndoDecisionUseCase` instead of `DecideRequestUseCase`.
+
+  `UndoDecisionUseCase`, approved path:
+  1. Load session -> 404 if missing; caller must be `session.host.id` -> else 403 (same
+     authorization as deciding in the first place).
+  2. Load the request -> 404 if missing; status must be `APPROVED` or `REJECTED` -> else
+     `RequestNotDecidedError` (409) -- see **Undo Decision - still pending**.
+  3. `revertApproval`'s `TransactWriteItems` (the mirror image of `approveRequest`'s):
+     ```
+     request item:  SET #s = :pending                      IF #s = :approved
+     session META:  SET slots_remaining = :n + 1, #s = OPEN IF slots_remaining = :n
+                                                             AND (#s = OPEN OR #s = FULL)
+     ```
+     Always lands on `OPEN`, never back on `FULL` -- freeing a slot can only ever make a
+     session less full. See **Get Session After Undo Approval** for the slot-count check.
+}

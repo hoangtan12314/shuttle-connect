@@ -22,7 +22,7 @@ body:json {
 
 script:post-response {
   if (res.getStatus() === 201) {
-    bru.setEnvVar("playerId", res.getBody().data.userId);
+    bru.setEnvVar("playerId", res.getBody().data.user.id);
   }
 }
 
@@ -33,11 +33,12 @@ assert {
 }
 
 tests {
-  test("returns the join request, owned by the player, against the host's session", function () {
+  test("returns a full RequestItemResponse, owned by the player, against the host's session", function () {
     const request = res.getBody().data;
-    expect(request.sessionId).to.equal(bru.getEnvVar("sessionId"));
-    expect(request.userId).to.be.a("string");
-    expect(request.userId).to.not.equal(bru.getEnvVar("userId"));   // player, not host
+    expect(request.session.id).to.equal(bru.getEnvVar("sessionId"));
+    expect(request.user.id).to.be.a("string");
+    expect(request.user.id).to.not.equal(bru.getEnvVar("userId"));   // player, not host
+    expect(request.court.name).to.be.a("string");   // denormalized onto the request, not just a court id
   });
 }
 
@@ -51,4 +52,11 @@ docs {
   and `session_start_time` / `session_end_time`. The times are named `session_*` on
   purpose -- a bare `start_time` alongside `location` would put this request into the
   browse index, which must return sessions only.
+
+  **Response shape note:** `CreateRequestUseCase` used to return the raw `Request` domain
+  entity (`{userId, sessionId, status, createdAt}`, flat, no court/user denormalization) --
+  fixed to return a proper `RequestItemResponse` (nested `user`/`session`/`court`, matching
+  what `GET /requests/mine` already returned), assembled from the `session`/`user` objects
+  already fetched for validation, no extra DynamoDB read. `playerId` is now captured from
+  `data.user.id`, not the old flat `data.userId`.
 }

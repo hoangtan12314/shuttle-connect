@@ -23,13 +23,11 @@ assert {
 }
 
 docs {
-  Implemented, blocked by the same `SessionModule` DI gap as **List Session Requests
-  (host)** (`GetRequestsUseCase`/`DecideRequestUseCase`/`REQUEST_REPOSITORY` missing from
-  its `providers` array) -- the session Lambda won't boot until that's fixed. Once it is,
-  this should pass as written.
+  Implemented and passing (see **List Session Requests (host)**'s docs for the DI-gap
+  history this folder used to be blocked on).
 
   Runs as the **host**. Needs `{{playerId}}` -- captured by
-  **Requests / Create Request**'s `post-response` script from `data.userId`.
+  **Requests / Create Request**'s `post-response` script from `data.user.id`.
 
   `DecideRequestUseCase`, approve path (as implemented):
   1. Load session -> 404 if missing; caller must be `session.host.id` -> else 403.

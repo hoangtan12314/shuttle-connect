@@ -1,0 +1,37 @@
+meta {
+  name: Undo Decision - still pending
+  type: http
+  seq: 11
+}
+
+patch {
+  url: {{baseUrl}}/sessions/{{sessionId}}/requests/{{playerId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "status": "PENDING"
+  }
+}
+
+assert {
+  res.status: eq 409
+  res.body.success: eq false
+  res.body.error.code: eq REQUEST_NOT_DECIDED
+}
+
+docs {
+  Depends on **Undo Rejection** having put the request back to `PENDING`. Same route as
+  every other request in this folder, run as the host again -- but there's nothing to
+  undo this time, since the request was never decided (or was already undone back to
+  `PENDING`).
+
+  `UndoDecisionUseCase` checks the request's status is `APPROVED` or `REJECTED` *before*
+  calling either repository method -- a `PENDING` (or, once Phase 3.5 lands, `WITHDRAWN`)
+  request falls through to `RequestNotDecidedError` (409), the mirror image of
+  `RequestAlreadyDecidedError` (409) that **Approve Request Again** exercises for the
+  opposite mistake -- deciding something already decided, instead of undoing something
+  never decided.
+}

@@ -1,0 +1,39 @@
+meta {
+  name: Undo Decision - not host
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{baseUrl}}/sessions/{{sessionId}}/requests/{{playerId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken2}}
+}
+
+body:json {
+  {
+    "status": "PENDING"
+  }
+}
+
+assert {
+  res.status: eq 403
+  res.body.success: eq false
+  res.body.error.code: eq FORBIDDEN
+}
+
+docs {
+  Depends on **Reject Request** having run -- run as the **player** (`{{idToken2}}`)
+  instead of the host, undoing their *own* rejected request. Mirrors **List Session
+  Requests (not host)**: `UndoDecisionUseCase` checks `userId !== session.host.id` and
+  throws `ForbiddenError` before ever looking at the request's own status, so this fails
+  the same way regardless of whether the request is actually undoable -- being the host is
+  checked first, being in a reversible state second.
+
+  The request stays `REJECTED` after this -- a failed authorization check shouldn't have
+  side effects. **Undo Rejection** (run as the host) is the one that actually reverts it.
+}

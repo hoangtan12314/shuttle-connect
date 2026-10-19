@@ -1,4 +1,10 @@
-import { RequestItemResponse, RequestStatus, SkillLevel } from '@shuttle-connect/types';
+import {
+  RequestItemResponse,
+  RequestStatus,
+  SessionItemResponse,
+  SkillLevel,
+  UserItemResponse,
+} from '@shuttle-connect/types';
 import { Request } from '../../../domain/request';
 import { fromLocationKey } from './location';
 
@@ -36,7 +42,45 @@ export class RequestMapper {
     };
   }
 
-  static toResponse(item: Record<string, any>): RequestItemResponse {
+  // Two sources for the same output shape: a persisted DynamoDB item (the read path) or a
+  // freshly-created entity + the session/user already fetched to validate it (the create path --
+  // no second DynamoDB read, see SessionMapper.toResponse for the same pattern).
+  static toResponse(item: Record<string, any>): RequestItemResponse;
+  static toResponse(
+    request: Request,
+    session: SessionItemResponse,
+    user: UserItemResponse,
+  ): RequestItemResponse;
+  static toResponse(
+    itemOrRequest: Record<string, any> | Request,
+    session?: SessionItemResponse,
+    user?: UserItemResponse,
+  ): RequestItemResponse {
+    if (itemOrRequest instanceof Request) {
+      const data = itemOrRequest.toJSON();
+      return {
+        user: {
+          id: user!.id,
+          name: user!.fullName,
+          skillLevel: user!.skillLevel,
+        },
+        session: {
+          id: session!.id,
+          startTime: session!.startTime,
+          endTime: session!.endTime,
+        },
+        court: {
+          name: session!.court.name,
+          district: session!.court.district,
+          city: session!.court.city,
+          coordinates: session!.court.coordinates,
+        },
+        status: data.status,
+        createdAt: data.createdAt.toISOString(),
+      };
+    }
+
+    const item = itemOrRequest;
     const { city, district } = fromLocationKey(item.location);
 
     return {

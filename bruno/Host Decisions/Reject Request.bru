@@ -1,0 +1,38 @@
+meta {
+  name: Reject Request
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{baseUrl}}/sessions/{{sessionId}}/requests/{{playerId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "status": "REJECTED"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.status: eq REJECTED
+}
+
+docs {
+  Was missing from this collection even though `rejectRequest` has existed since **Approve
+  Request** was written -- added here as the setup step **Undo Rejection** needs. Depends on
+  **Undo Approval** having put the request back to `PENDING` first (can't reject something
+  already decided -- that's **Approve Request Again**'s 409 case, same
+  `RequestAlreadyDecidedError`).
+
+  `DecideRequestUseCase`, reject path: unlike approve, this is a single `UpdateCommand`, not
+  a transaction -- a rejected request never touches `slots_remaining`, so there's nothing
+  else that needs to change atomically alongside it.
+  ```
+  request item:  SET #s = :rejected  IF #s = :pending
+  ```
+}

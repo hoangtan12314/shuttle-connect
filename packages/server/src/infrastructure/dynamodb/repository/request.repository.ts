@@ -17,7 +17,10 @@ import {
   SessionStatus,
   UserItemResponse,
 } from '@shuttle-connect/types';
-import { ConditionalCheckFailedException, TransactionCanceledException } from '@aws-sdk/client-dynamodb';
+import {
+  ConditionalCheckFailedException,
+  TransactionCanceledException,
+} from '@aws-sdk/client-dynamodb';
 import {
   ConcurrentUpdateError,
   DuplicateRequestError,
@@ -106,6 +109,83 @@ export class RequestRepositoryDynamoDB implements RequestRepository {
     }
   }
 
+  // approveRequest's mirror image: give the slot back and flip FULL -> OPEN if freeing this slot
+  // un-fills the session. Always lands on OPEN (never back on FULL), since freeing a slot can only
+  // ever make a session less full, not more.
+  async revertApproval(
+    sessionId: string,
+    userId: string,
+    currentSlotsRemaining: number,
+  ): Promise<void> {
+    try {
+      const nextSlotsRemaining = currentSlotsRemaining + 1;
+      await this.client.send(
+        new TransactWriteCommand({
+          TransactItems: [
+            {
+              Update: {
+                TableName: this.tableName,
+                Key: { PK: `SESSION#${sessionId}`, SK: `REQUEST#USER#${userId}` },
+                UpdateExpression: 'SET #s = :pending',
+                ConditionExpression: '#s = :approved',
+                ExpressionAttributeNames: { '#s': 'status' },
+                ExpressionAttributeValues: {
+                  ':pending': RequestStatus.PENDING,
+                  ':approved': RequestStatus.APPROVED,
+                },
+              },
+            },
+            {
+              Update: {
+                TableName: this.tableName,
+                Key: { PK: `SESSION#${sessionId}`, SK: 'META' },
+                UpdateExpression: 'SET slots_remaining = :next, #s = :open',
+                ConditionExpression: 'slots_remaining = :current AND (#s = :open OR #s = :full)',
+                ExpressionAttributeNames: { '#s': 'status' },
+                ExpressionAttributeValues: {
+                  ':next': nextSlotsRemaining,
+                  ':current': currentSlotsRemaining,
+                  ':open': SessionStatus.OPEN,
+                  ':full': SessionStatus.FULL,
+                },
+              },
+            },
+          ],
+        }),
+      );
+    } catch (err) {
+      if (err instanceof TransactionCanceledException) {
+        throw new ConcurrentUpdateError();
+      }
+      throw err;
+    }
+  }
+
+  // rejectRequest's mirror image -- rejected requests never touched slots_remaining, so neither
+  // does undoing one. Plain conditional status flip, no transaction needed.
+  async revertRejection(sessionId: string, userId: string): Promise<void> {
+    try {
+      await this.client.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { PK: `SESSION#${sessionId}`, SK: `REQUEST#USER#${userId}` },
+          UpdateExpression: 'SET #s = :pending',
+          ConditionExpression: '#s = :rejected',
+          ExpressionAttributeNames: { '#s': 'status' },
+          ExpressionAttributeValues: {
+            ':pending': RequestStatus.PENDING,
+            ':rejected': RequestStatus.REJECTED,
+          },
+        }),
+      );
+    } catch (err) {
+      if (err instanceof ConditionalCheckFailedException) {
+        throw new RequestAlreadyDecidedError();
+      }
+      throw err;
+    }
+  }
+
   async getBySessionAndUser(
     sessionId: string,
     userId: string,
@@ -160,7 +240,7 @@ export class RequestRepositoryDynamoDB implements RequestRepository {
     request: Request,
     session: SessionItemResponse,
     user: UserItemResponse,
-  ): Promise<void> {
+  ): Promise<RequestItemResponse> {
     const item = RequestMapper.toPersistence(request);
 
     const sessionStartTime = new Date(session.startTime).getTime();
@@ -199,5 +279,8 @@ export class RequestRepositoryDynamoDB implements RequestRepository {
       }
       throw err;
     }
+
+    // No second read -- `session`/`user` are exactly what was just denormalized onto the item.
+    return RequestMapper.toResponse(request, session, user);
   }
 }

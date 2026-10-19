@@ -8,10 +8,18 @@ import {
 } from '../../application/session';
 import { SESSION_REPOSITORY } from '../../domain/session';
 import { COURT_REPOSITORY } from '../../domain/court';
-import { CourtRepositoryDynamoDB, RequestRepositoryDynamoDB, SessionRepositoryDynamoDB } from '../dynamodb';
+import {
+  CourtRepositoryDynamoDB,
+  RequestRepositoryDynamoDB,
+  SessionRepositoryDynamoDB,
+} from '../dynamodb';
 import { DynamoDbClientProvider, TableNameProvider } from '../dynamodb/provider';
 import { AuthModule } from './auth.module';
-import { DecideRequestUseCase, GetRequestsUseCase } from '../../application/request';
+import {
+  DecideRequestUseCase,
+  GetRequestsUseCase,
+  UndoDecisionUseCase,
+} from '../../application/request';
 import { REQUEST_REPOSITORY } from '../../domain/request';
 
 @Module({
@@ -24,6 +32,7 @@ import { REQUEST_REPOSITORY } from '../../domain/request';
     GetSessionsByUserIdUseCase,
     DecideRequestUseCase,
     GetRequestsUseCase,
+    UndoDecisionUseCase,
     DynamoDbClientProvider,
     TableNameProvider,
     { provide: SESSION_REPOSITORY, useClass: SessionRepositoryDynamoDB },

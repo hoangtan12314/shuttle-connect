@@ -14,3 +14,4 @@ export * from './concurrent-update.error';
 export * from './cannot-join-own-session.error';
 export * from './invalid-session-time.error';
 export * from './request-already-decided.error';
+export * from './request-not-decided.error';

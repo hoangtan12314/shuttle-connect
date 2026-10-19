@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateSessionInput, SessionStatus } from '@shuttle-connect/types';
+import { CreateSessionInput, SessionItemResponse, SessionStatus } from '@shuttle-connect/types';
 import { Session, SESSION_REPOSITORY, type SessionRepository } from '../../domain/session';
 import { COURT_REPOSITORY, type CourtRepository } from '../../domain/court';
 import { USER_REPOSITORY, type UserRepository } from '../../domain/user';
@@ -10,10 +10,10 @@ export class CreateSessionsUseCase {
   constructor(
     @Inject(SESSION_REPOSITORY) private sessionRepository: SessionRepository,
     @Inject(COURT_REPOSITORY) private courtRepository: CourtRepository,
-    @Inject(USER_REPOSITORY) private userRepository: UserRepository
+    @Inject(USER_REPOSITORY) private userRepository: UserRepository,
   ) {}
 
-  async execute(hostId: string, input: CreateSessionInput): Promise<Session> {
+  async execute(hostId: string, input: CreateSessionInput): Promise<SessionItemResponse> {
     const startTime = new Date(input.startTime);
     const endTime = new Date(input.endTime);
 
@@ -31,14 +31,12 @@ export class CreateSessionsUseCase {
       endTime,
     });
 
-    const host = await this.userRepository.findById(hostId)
+    const host = await this.userRepository.findById(hostId);
 
     if (!host) {
-      throw new EntityNotFoundError("User")
+      throw new EntityNotFoundError('User');
     }
 
-    await this.sessionRepository.create(sessionToBeCreated, court, host);
-
-    return sessionToBeCreated;
+    return this.sessionRepository.create(sessionToBeCreated, court, host);
   }
 }

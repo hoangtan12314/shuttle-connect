@@ -1,0 +1,27 @@
+meta {
+  name: Get Session After Undo Approval
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/sessions/{{sessionId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.slotsRemaining: eq 8
+}
+
+docs {
+  Mirrors **Get Session After Approve**. Depends on **Undo Approval** having run --
+  `slotsRemaining` dropped to `7` when the request was approved, so undoing that approval
+  should restore it to the original `8` (see **Sessions / Create Session**'s `slotsTotal`).
+
+  Like its counterpart, this route itself isn't new -- what's actually being tested is that
+  `revertApproval`'s transaction really did increment `slots_remaining` back, not just flip
+  the request's own status.
+}

@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Inject, Param, Patch, Post, Query } from '@nestjs/common';
+import { RequestStatus } from '@shuttle-connect/types';
 import {
   CreateSessionsUseCase,
   GetSessionByIdUseCase,
@@ -8,7 +9,11 @@ import {
 import { CreateSessionDto, DecideRequestDto, ListSessionsByDistrictDto } from '../dtos';
 import { ValidateBodyPipe } from '../pipes';
 import { type AuthUser, CurrentUser, Public } from '../guard';
-import { DecideRequestUseCase, GetRequestsUseCase } from '../../application/request';
+import {
+  DecideRequestUseCase,
+  GetRequestsUseCase,
+  UndoDecisionUseCase,
+} from '../../application/request';
 
 @Controller('sessions')
 export class SessionController {
@@ -25,6 +30,8 @@ export class SessionController {
     private readonly getRequestsUseCase: GetRequestsUseCase,
     @Inject(DecideRequestUseCase)
     private readonly decideRequestUseCase: DecideRequestUseCase,
+    @Inject(UndoDecisionUseCase)
+    private readonly undoDecisionUseCase: UndoDecisionUseCase,
   ) {}
 
   @Public()
@@ -65,6 +72,9 @@ export class SessionController {
     return createdSessions;
   }
 
+  // Undo shares this route/DTO rather than getting its own -- it's still "the host sets this
+  // request's status", just to PENDING instead of APPROVED/REJECTED. DecideRequestDto's
+  // @IsEnum(RequestStatus) already accepts PENDING, so no DTO change was needed.
   @Patch(':id/requests/:userId')
   async decideRequest(
     @CurrentUser() user: AuthUser,
@@ -72,6 +82,10 @@ export class SessionController {
     @Param('userId') userId: string,
     @Body(new ValidateBodyPipe(DecideRequestDto)) decideRequestDTO: DecideRequestDto,
   ) {
+    if (decideRequestDTO.status === RequestStatus.PENDING) {
+      return this.undoDecisionUseCase.execute(user.id, id, userId);
+    }
+
     const decidedRequest = await this.decideRequestUseCase.execute(
       user.id,
       id,

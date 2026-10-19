@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateCourtInput } from '@shuttle-connect/types';
+import { CourtItemResponse, CreateCourtInput } from '@shuttle-connect/types';
 import { Court, COURT_REPOSITORY, type CourtRepository } from '../../domain/court';
 
 @Injectable()
 export class CreateCourtUseCase {
   constructor(@Inject(COURT_REPOSITORY) private courtRepository: CourtRepository) {}
 
-  async execute(input: CreateCourtInput): Promise<Court> {
+  async execute(input: CreateCourtInput): Promise<CourtItemResponse> {
     const courtToBeCreated = Court.create({
       name: input.name,
       address: input.address,
@@ -16,8 +16,6 @@ export class CreateCourtUseCase {
       longitude: input.longitude,
     });
 
-    await this.courtRepository.create(courtToBeCreated);
-
-    return courtToBeCreated;
+    return this.courtRepository.create(courtToBeCreated);
   }
 }

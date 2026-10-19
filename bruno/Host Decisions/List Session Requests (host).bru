@@ -26,17 +26,11 @@ tests {
 }
 
 docs {
-  Implemented, but two real bugs currently block **every** request in this folder --
-  check both before assuming your own setup is wrong:
-
-  1. `SessionModule` was never updated with the Step 5 providers. `SessionController`
-     injects `GetRequestsUseCase`/`DecideRequestUseCase`/`REQUEST_REPOSITORY`, none of
-     which are in the module's `providers` array. This fails Nest's DI resolution **at
-     boot** -- the session Lambda won't come up at all, against `local` or `dev`.
-  2. Once that's fixed: `SessionController.getRequestsBySession` never returns its
-     result (`const requests = await ...;` with no `return requests;`). This endpoint
-     would respond `200` with empty `data` even though the use case computed the right
-     thing.
+  Implemented and passing -- the two bugs this doc used to warn about (`SessionModule`
+  missing `GetRequestsUseCase`/`DecideRequestUseCase`/`REQUEST_REPOSITORY` from its
+  `providers`, and `getRequestsBySession` not returning its result) are both fixed; left
+  as a note in case a future DI-registration slip reintroduces the first one (it fails at
+  boot, not at the call site, so it's easy to misdiagnose as "my token is wrong").
 
   Runs as the **host** (`auth: inherit`). Plain table `Query`:
   `PK = SESSION#<id> AND begins_with(SK, 'REQUEST#')` (access pattern #1 from

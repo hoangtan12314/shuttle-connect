@@ -1,4 +1,10 @@
-import { SessionItemResponse, SessionOverview } from '@shuttle-connect/types';
+import {
+  CourtItemResponse,
+  SessionItemResponse,
+  SessionOverview,
+  ShuttleType,
+  UserItemResponse,
+} from '@shuttle-connect/types';
 import { Session } from '../../../domain/session';
 import { fromLocationKey } from './location';
 
@@ -54,7 +60,52 @@ export class SessionMapper {
     };
   }
 
-  static toResponse(item: Record<string, any>): SessionItemResponse {
+  // Two sources for the same output shape: a persisted DynamoDB item (the read path, used
+  // everywhere else) or a freshly-created entity + the court/host already fetched to validate it
+  // (the create path -- no second DynamoDB read, since PutCommand can't return "the new item" the
+  // way UpdateCommand's ReturnValues: 'ALL_NEW' can, an UpdateItem-only feature, and doesn't need
+  // to, since the caller already holds everything that was written).
+  static toResponse(item: Record<string, any>): SessionItemResponse;
+  static toResponse(
+    session: Session,
+    court: CourtItemResponse,
+    host: UserItemResponse,
+  ): SessionItemResponse;
+  static toResponse(
+    itemOrSession: Record<string, any> | Session,
+    court?: CourtItemResponse,
+    host?: UserItemResponse,
+  ): SessionItemResponse {
+    if (itemOrSession instanceof Session) {
+      const data = itemOrSession.toJSON();
+      return {
+        id: data.id,
+        status: data.status,
+        startTime: data.startTime.toISOString(),
+        endTime: data.endTime.toISOString(),
+        slotsRemaining: data.slotsRemaining,
+        slotsTotal: data.slotsTotal,
+        priceMale: data.priceMale,
+        priceFemale: data.priceFemale,
+        shuttleType: data.shuttleType as ShuttleType,
+        minSkillLevel: data.minSkillLevel,
+        description: data.description,
+        createdAt: data.createdAt.toISOString(),
+        court: {
+          id: court!.id,
+          name: court!.name,
+          coordinates: { lat: court!.latitude, lng: court!.longitude },
+          district: court!.district,
+          city: court!.city,
+        },
+        host: {
+          id: host!.id,
+          name: host!.fullName,
+        },
+      };
+    }
+
+    const item = itemOrSession;
     const { city, district } = fromLocationKey(item.location);
 
     return {

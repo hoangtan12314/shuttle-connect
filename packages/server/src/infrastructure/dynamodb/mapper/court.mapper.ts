@@ -34,7 +34,29 @@ export class CourtMapper {
     };
   }
 
-  static toResponse(record: Record<string, any>): CourtItemResponse {
+  // Two sources for the same output shape: a persisted DynamoDB record (the read path) or a
+  // freshly-created entity (the create path -- no second DynamoDB read; unlike session's
+  // court/host or request's session/user, CourtItemResponse's fields are a 1:1 match with what
+  // Court.toJSON() already has, no denormalized cross-entity data needed, so nothing extra to pass
+  // in). See SessionMapper.toResponse for the same overload pattern.
+  static toResponse(record: Record<string, any>): CourtItemResponse;
+  static toResponse(court: Court): CourtItemResponse;
+  static toResponse(recordOrCourt: Record<string, any> | Court): CourtItemResponse {
+    if (recordOrCourt instanceof Court) {
+      const data = recordOrCourt.toJSON();
+      return {
+        id: data.id,
+        name: data.name,
+        address: data.address,
+        district: data.district,
+        city: data.city,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        createdAt: data.createdAt.toISOString(),
+      };
+    }
+
+    const record = recordOrCourt;
     const { city, district } = fromLocationKey(record.location);
 
     return {
