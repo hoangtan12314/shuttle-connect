@@ -57,14 +57,14 @@ request needs a *different* person than whoever hosted it:
    ```bash
    aws cognito-idp admin-create-user --user-pool-id <userPoolId> --username test@example.com \
      --user-attributes Name=email,Value=test@example.com Name=email_verified,Value=true \
-                        Name=name,Value="Test User" \
+                        Name=name,Value="Host user 1" \
      --message-action SUPPRESS
    aws cognito-idp admin-set-user-password --user-pool-id <userPoolId> \
      --username test@example.com --password 'Test1234!' --permanent
 
    aws cognito-idp admin-create-user --user-pool-id <userPoolId> --username player@example.com \
      --user-attributes Name=email,Value=player@example.com Name=email_verified,Value=true \
-                        Name=name,Value="Test Player" \
+                        Name=name,Value="Player user 1" \
      --message-action SUPPRESS
    aws cognito-idp admin-set-user-password --user-pool-id <userPoolId> \
      --username player@example.com --password 'Test1234!' --permanent

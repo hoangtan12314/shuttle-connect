@@ -118,6 +118,22 @@ flow, React Hook Form + Zod. Response envelope consumed via `shared/api/client.t
 comparable against the shared `ErrorCode` enum) on `ApiErrorResponse` — the same contract
 `GlobalExceptionFilter` produces server-side.
 
+**Cursor rule.** Tailwind's preflight resets `<button>` to the default arrow cursor, so pointers
+have to be added deliberately:
+- **Pointer (`cursor-pointer`):** anything clickable that isn't a link (buttons, icon/close
+  buttons, plain `<button>`s); choice controls (select box and options, radio, checkbox, switch,
+  toggle/toggle group, tabs, segmented controls); menu items and menu/popover triggers; a label
+  wrapped around a radio/checkbox/switch; whole cards or rows that act as one link or button;
+  native sub-controls (`file:cursor-pointer`, `[&::-webkit-calendar-picker-indicator]:cursor-pointer`).
+- **No pointer:** text-entry areas (keep the text cursor); `<a>`/`<Link>` (browsers already show a
+  pointer, so it's optional unless styled as a button); hover-only elements like Radix Select's
+  scroll arrows; display-only text, badges and tags.
+- **Disabled:** `disabled:cursor-not-allowed`, or `pointer-events-none` if the control should
+  ignore the mouse entirely.
+- **Where:** in the `shared/ui` primitive, so every use inherits it, not in each feature's
+  `className`. Plain `<button>`s, and labels around choice controls, carry it themselves (don't
+  put it on `Label` globally; most labels belong to text fields).
+
 `infra/web.ts` deploys the frontend as an `sst.aws.StaticSite` and injects `VITE_API_URL` /
 `VITE_COGNITO_*` as real env vars via `dev.command`, so `pnpm run sst:dev` starts Vite with live
 values — no hand-maintained `.env` for the deployed API/Cognito client id. Local-only `pnpm run

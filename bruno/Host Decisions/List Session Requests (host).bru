@@ -20,7 +20,7 @@ tests {
     const requests = res.getBody().data;
     expect(requests).to.have.lengthOf.at.least(1);
     const mine = requests[0];
-    expect(mine.user.name).to.equal("Test Player");   // D1 -- not 'Some random name'
+    expect(mine.user.name).to.equal("Player user 1");   // D1 -- not 'Some random name'
     expect(mine.status).to.equal("PENDING");
   });
 }
