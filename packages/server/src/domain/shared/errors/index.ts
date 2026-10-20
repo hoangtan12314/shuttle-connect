@@ -13,5 +13,6 @@ export * from './duplicate-request.error';
 export * from './concurrent-update.error';
 export * from './cannot-join-own-session.error';
 export * from './invalid-session-time.error';
+export * from './session-too-long.error';
 export * from './request-already-decided.error';
 export * from './request-not-decided.error';

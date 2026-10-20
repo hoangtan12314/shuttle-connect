@@ -1,7 +1,13 @@
 import { randomUUID } from 'crypto';
-import { SessionStatus, SkillLevel } from '@shuttle-connect/types';
+import { MAX_SESSION_HOURS, SessionStatus, SkillLevel } from '@shuttle-connect/types';
 import { InvalidSlotValuesError, SessionFullError, SessionNotOpenError } from './session.error';
-import { InvalidFieldLengthError, InvalidSessionTimeError } from '../shared/errors';
+import {
+  InvalidFieldLengthError,
+  InvalidSessionTimeError,
+  SessionTooLongError,
+} from '../shared/errors';
+
+const MAX_SESSION_DURATION_MS = MAX_SESSION_HOURS * 60 * 60 * 1000;
 
 export interface SessionProps {
   courtId: string;
@@ -108,6 +114,10 @@ export class Session {
 
     if (startTime < new Date()) {
       throw new InvalidSessionTimeError(startTime, endTime);
+    }
+
+    if (endTime.getTime() - startTime.getTime() > MAX_SESSION_DURATION_MS) {
+      throw new SessionTooLongError(startTime, endTime);
     }
   }
 
