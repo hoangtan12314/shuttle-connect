@@ -1,0 +1,48 @@
+meta {
+  name: Create Session - too long
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/sessions
+  body: json
+  auth: inherit
+}
+
+script:pre-request {
+  const start = new Date(Date.now() + 24 * 60 * 60 * 1000); // tomorrow
+  const end = new Date(start.getTime() + 6 * 60 * 60 * 1000 + 1000); // 6h + 1s later
+  bru.setVar("dynamicStartTime", start.toISOString());
+  bru.setVar("dynamicEndTime", end.toISOString());
+}
+
+body:json {
+  {
+    "courtId": "{{courtId}}",
+    "startTime": "{{dynamicStartTime}}",
+    "endTime": "{{dynamicEndTime}}",
+    "slotsRemaining": 8,
+    "slotsTotal": 8,
+    "priceMale": 60000,
+    "priceFemale": 40000,
+    "shuttleType": "YONEX_AS30",
+    "minSkillLevel": 3,
+    "description": "Exceeds the 6-hour max"
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.success: eq false
+  res.body.error.code: eq SESSION_TOO_LONG
+}
+
+docs {
+  `endTime` is 6 hours and 1 second after `startTime` -- one second over
+  `MAX_SESSION_HOURS` (shared via `@shuttle-connect/types`). `Session.validateTimeSlot`
+  must reject this via `SessionTooLongError` before anything is written.
+
+  A session exactly 6 hours long should be allowed (the check is `>`, not `>=`) --
+  not covered here, worth a manual check if you want to confirm the boundary.
+}
