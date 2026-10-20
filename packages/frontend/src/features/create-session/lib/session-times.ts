@@ -1,6 +1,9 @@
-// features/create-session/lib: start/end-time helpers for the create form. The server doesn't
-// enforce MAX_SESSION_HOURS yet (planned) -- until it does, this is only a client-side guard.
-export const MAX_SESSION_HOURS = 6;
+// features/create-session/lib: start/end-time helpers for the create form.
+// MAX_SESSION_HOURS is shared with the server (Session.validateTimeSlot enforces it for real);
+// this file re-exports it so existing imports of `MAX_SESSION_HOURS` from here keep working.
+import { MAX_SESSION_HOURS } from '@shuttle-connect/types';
+
+export { MAX_SESSION_HOURS };
 export const SUGGESTED_SESSION_HOURS = 2;
 
 const HOUR_MS = 60 * 60 * 1000;
