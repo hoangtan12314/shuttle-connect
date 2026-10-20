@@ -7,6 +7,9 @@ export const vi = {
   close: 'Đóng',
   undo: 'Hoàn tác',
   createSession: 'Tạo buổi',
+  languageL: 'Ngôn ngữ',
+  getHelp: 'Trợ giúp',
+  logout: 'Đăng xuất',
 
   // Nav labels (widgets/app-shell) -- distinct from the page titles below (navActivity vs
   // activityT, navAlerts vs notifsT): the design uses shorter wording in the nav itself.
@@ -145,4 +148,5 @@ export const vi = {
   rejectingBtn: 'Đang từ chối…',
   rejectedBtn: 'Đã từ chối',
   noRequestsT: 'Chưa có yêu cầu nào',
+  notHostT: 'Bạn không có quyền truy cập trang này',
 } as const;

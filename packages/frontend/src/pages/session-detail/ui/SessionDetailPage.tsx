@@ -1,12 +1,11 @@
 import { useSession } from '@/entities/session';
 import { useMe } from '@/entities/user';
 import { useAuthUser } from '@/features/auth';
-import { HostRequestPanel } from '@/widgets/host-requests-panel';
 import { HostSessionView, JoinerSessionView } from '@/widgets/session-detail';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Button } from '@/shared/ui/button';
 import { useT } from '@/shared/i18n';
-import { useParams } from '@tanstack/react-router';
+import { Link, useParams } from '@tanstack/react-router';
 import { RefreshCw } from 'lucide-react';
 
 export function SessionDetailPage() {
@@ -55,7 +54,14 @@ export function SessionDetailPage() {
     return (
       <div className="flex flex-col gap-4">
         <HostSessionView session={session} />
-        <HostRequestPanel sessionId={session.id} />
+        <Button asChild>
+          <Link
+            to="/sessions/$sessionId/manage"
+            params={{ sessionId: session.id }}
+          >
+            {t.manageT}
+          </Link>
+        </Button>
       </div>
     );
   }

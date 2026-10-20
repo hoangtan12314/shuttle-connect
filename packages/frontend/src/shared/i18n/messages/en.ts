@@ -7,6 +7,9 @@ export const en = {
   close: 'Close',
   undo: 'Undo',
   createSession: 'Create session',
+  languageL: 'Language',
+  getHelp: 'Get help',
+  logout: 'Log out',
 
   navBrowse: 'Browse',
   navActivity: 'Activity',
@@ -144,4 +147,5 @@ export const en = {
   rejectingBtn: 'Declining…',
   rejectedBtn: 'Declined',
   noRequestsT: 'No requests yet',
+  notHostT: 'You don’t have access to this page',
 } as const;

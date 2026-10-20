@@ -1,1 +1,1 @@
-// pages/create-session public API
+export { CreateSessionPage } from './ui/CreateSessionPage';

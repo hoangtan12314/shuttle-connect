@@ -16,7 +16,7 @@ import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as SessionsSessionIdRouteImport } from './routes/sessions.$sessionId'
 import { Route as SessionsNewRouteImport } from './routes/sessions.new'
-import { Route as SessionsSessionIdManageRouteImport } from './routes/sessions.$sessionId.manage'
+import { Route as SessionsSessionIdManageRouteImport } from './routes/sessions.$sessionId_.manage'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -54,9 +54,9 @@ const SessionsNewRoute = SessionsNewRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const SessionsSessionIdManageRoute = SessionsSessionIdManageRouteImport.update({
-  id: '/manage',
-  path: '/manage',
-  getParentRoute: () => SessionsSessionIdRoute,
+  id: '/sessions/$sessionId_/manage',
+  path: '/sessions/$sessionId/manage',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -65,7 +65,7 @@ export interface FileRoutesByFullPath {
   '/callback': typeof CallbackRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
-  '/sessions/$sessionId': typeof SessionsSessionIdRouteWithChildren
+  '/sessions/$sessionId': typeof SessionsSessionIdRoute
   '/sessions/new': typeof SessionsNewRoute
   '/sessions/$sessionId/manage': typeof SessionsSessionIdManageRoute
 }
@@ -75,7 +75,7 @@ export interface FileRoutesByTo {
   '/callback': typeof CallbackRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
-  '/sessions/$sessionId': typeof SessionsSessionIdRouteWithChildren
+  '/sessions/$sessionId': typeof SessionsSessionIdRoute
   '/sessions/new': typeof SessionsNewRoute
   '/sessions/$sessionId/manage': typeof SessionsSessionIdManageRoute
 }
@@ -86,9 +86,9 @@ export interface FileRoutesById {
   '/callback': typeof CallbackRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
-  '/sessions/$sessionId': typeof SessionsSessionIdRouteWithChildren
+  '/sessions/$sessionId': typeof SessionsSessionIdRoute
   '/sessions/new': typeof SessionsNewRoute
-  '/sessions/$sessionId/manage': typeof SessionsSessionIdManageRoute
+  '/sessions/$sessionId_/manage': typeof SessionsSessionIdManageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -120,7 +120,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/sessions/$sessionId'
     | '/sessions/new'
-    | '/sessions/$sessionId/manage'
+    | '/sessions/$sessionId_/manage'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -129,8 +129,9 @@ export interface RootRouteChildren {
   CallbackRoute: typeof CallbackRoute
   NotificationsRoute: typeof NotificationsRoute
   ProfileRoute: typeof ProfileRoute
-  SessionsSessionIdRoute: typeof SessionsSessionIdRouteWithChildren
+  SessionsSessionIdRoute: typeof SessionsSessionIdRoute
   SessionsNewRoute: typeof SessionsNewRoute
+  SessionsSessionIdManageRoute: typeof SessionsSessionIdManageRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -184,26 +185,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SessionsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sessions/$sessionId/manage': {
-      id: '/sessions/$sessionId/manage'
-      path: '/manage'
+    '/sessions/$sessionId_/manage': {
+      id: '/sessions/$sessionId_/manage'
+      path: '/sessions/$sessionId/manage'
       fullPath: '/sessions/$sessionId/manage'
       preLoaderRoute: typeof SessionsSessionIdManageRouteImport
-      parentRoute: typeof SessionsSessionIdRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface SessionsSessionIdRouteChildren {
-  SessionsSessionIdManageRoute: typeof SessionsSessionIdManageRoute
-}
-
-const SessionsSessionIdRouteChildren: SessionsSessionIdRouteChildren = {
-  SessionsSessionIdManageRoute: SessionsSessionIdManageRoute,
-}
-
-const SessionsSessionIdRouteWithChildren =
-  SessionsSessionIdRoute._addFileChildren(SessionsSessionIdRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -211,8 +201,9 @@ const rootRouteChildren: RootRouteChildren = {
   CallbackRoute: CallbackRoute,
   NotificationsRoute: NotificationsRoute,
   ProfileRoute: ProfileRoute,
-  SessionsSessionIdRoute: SessionsSessionIdRouteWithChildren,
+  SessionsSessionIdRoute: SessionsSessionIdRoute,
   SessionsNewRoute: SessionsNewRoute,
+  SessionsSessionIdManageRoute: SessionsSessionIdManageRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
