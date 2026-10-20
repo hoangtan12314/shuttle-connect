@@ -110,7 +110,7 @@ export function SessionFilters({ myLevel }: { myLevel?: SkillLevel }) {
           type="button"
           onClick={() => setDay(null)}
           className={cn(
-            'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+            'cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-all active:scale-[0.96]',
             day === null
               ? 'border-primary bg-primary text-primary-foreground'
               : 'hover:bg-muted',
@@ -126,7 +126,7 @@ export function SessionFilters({ myLevel }: { myLevel?: SkillLevel }) {
               type="button"
               onClick={() => setDay(i)}
               className={cn(
-                'flex flex-col items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                'flex cursor-pointer flex-col items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-all active:scale-[0.96]',
                 day === i
                   ? 'border-primary bg-primary text-primary-foreground'
                   : 'hover:bg-muted',

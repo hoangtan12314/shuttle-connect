@@ -1,12 +1,35 @@
 import type { ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Bell, CalendarDays, Plus, Search } from 'lucide-react';
+import {
+  Bell,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  Globe,
+  HelpCircle,
+  LogOut,
+  Plus,
+  Search,
+  User as UserIcon,
+} from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '@/shared/ui/dropdown-menu';
 import { useAuthUser, LoginButton } from '@/features/auth';
 import { useMe } from '@/entities/user';
 import { useT, useLanguageStore, type Language } from '@/shared/i18n';
+import { cn } from 'cn';
 
 // Module-level, not defined inside AppShell -- a component declared during render is a fresh
 // type every render, so React treats each render's instance as unrelated to the last one and
@@ -29,6 +52,81 @@ function LanguageSwitch({
       <ToggleGroupItem value="vi">VI</ToggleGroupItem>
       <ToggleGroupItem value="en">EN</ToggleGroupItem>
     </ToggleGroup>
+  );
+}
+
+// Module-level for the same reason as LanguageSwitch above. Wraps `children` (whatever the
+// trigger should look like -- avatar alone on mobile, avatar+name on desktop) in a dropdown
+// combining features/auth (signOut) and shared/i18n (language) -- the same kind of composition
+// AppShell itself exists for, just scoped to the menu.
+function UserMenu({
+  email,
+  language,
+  onLanguageChange,
+  children,
+  className,
+}: {
+  email?: string;
+  language: Language;
+  onLanguageChange: (language: Language) => void;
+  children: ReactNode;
+  className?: string;
+}) {
+  const t = useT();
+  const { signOut } = useAuthUser();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            'group hover:bg-muted active:bg-muted data-[state=open]:bg-muted flex cursor-pointer items-center rounded-xl p-1.5 text-left transition-colors outline-none',
+            className,
+          )}
+        >
+          {children}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        {email && (
+          <DropdownMenuLabel className="text-muted-foreground truncate font-normal">
+            {email}
+          </DropdownMenuLabel>
+        )}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Globe />
+            {t.languageL}
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuItem onSelect={() => onLanguageChange('vi')}>
+              {language === 'vi' && <Check />}
+              Tiếng Việt
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onLanguageChange('en')}>
+              {language === 'en' && <Check />}
+              English
+            </DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        <DropdownMenuItem disabled>
+          <HelpCircle />
+          {t.getHelp}
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/profile">
+            <UserIcon />
+            {t.profile}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onSelect={signOut}>
+          <LogOut />
+          {t.logout}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -63,8 +161,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      {/* Desktop sidebar */}
-      <nav className="bg-card hidden w-60 flex-none flex-col gap-5 p-4 md:flex">
+      <nav className="bg-card sticky top-0 hidden h-screen w-60 flex-none flex-col gap-5 overflow-y-auto p-4 md:flex">
         <div>
           <Link to="/">
             <img
@@ -87,7 +184,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link
               key={to}
               to={to}
-              className="text-foreground flex min-h-12 items-center gap-3 rounded-xl px-3 font-semibold"
+              className="text-foreground hover:bg-primary-100 flex min-h-12 items-center gap-3 rounded-xl px-3 font-semibold transition-colors"
               activeProps={{ className: 'bg-primary-100 text-primary-800' }}
             >
               <Icon className="size-5" />
@@ -98,18 +195,33 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <div className="mt-auto flex flex-col gap-3 pt-3">
           {isAuthenticated ? (
-            <Link to="/profile" className="flex items-center gap-2 text-left">
-              <Avatar>
-                <AvatarFallback>{initials ?? '?'}</AvatarFallback>
-              </Avatar>
-              <span className="flex flex-col">
-                <span className="text-sm font-bold">{me?.fullName}</span>
+            <UserMenu
+              email={me?.email}
+              language={language}
+              onLanguageChange={setLanguage}
+              className="w-full"
+            >
+              <span className="flex w-full items-center gap-2">
+                {initials && (
+                  <Avatar>
+                    <AvatarFallback>{initials}</AvatarFallback>
+                  </Avatar>
+                )}
+                <span className="flex flex-1 flex-col">
+                  <span className="text-sm font-bold">{me?.fullName}</span>
+                </span>
+                <ChevronDown className="text-muted-foreground size-4 transition-transform group-data-[state=open]:rotate-180" />
               </span>
-            </Link>
+            </UserMenu>
           ) : (
-            <LoginButton />
+            <>
+              <LoginButton />
+              <LanguageSwitch
+                language={language}
+                onLanguageChange={setLanguage}
+              />
+            </>
           )}
-          <LanguageSwitch language={language} onLanguageChange={setLanguage} />
         </div>
       </nav>
 
@@ -122,15 +234,26 @@ export function AppShell({ children }: { children: ReactNode }) {
             className="mr-auto h-6 w-auto"
           />
         </Link>
-        <LanguageSwitch language={language} onLanguageChange={setLanguage} />
         {isAuthenticated ? (
-          <Link to="/profile" aria-label={t.profile}>
-            <Avatar>
-              <AvatarFallback>{initials ?? '?'}</AvatarFallback>
-            </Avatar>
-          </Link>
+          <UserMenu
+            email={me?.email}
+            language={language}
+            onLanguageChange={setLanguage}
+          >
+            {initials && (
+              <Avatar>
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+            )}
+          </UserMenu>
         ) : (
-          <LoginButton />
+          <>
+            <LanguageSwitch
+              language={language}
+              onLanguageChange={setLanguage}
+            />
+            <LoginButton />
+          </>
         )}
       </header>
 
