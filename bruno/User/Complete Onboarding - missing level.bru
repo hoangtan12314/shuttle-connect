@@ -1,0 +1,29 @@
+meta {
+  name: Complete Onboarding - missing level
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{apiUrl}}/users/me/onboarding
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "fullName": "Host user 1"
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.success: eq false
+  res.body.error.code: eq REQUEST_VALIDATION_FAILED
+}
+
+docs {
+  Unlike `PATCH /users/me` (both fields optional), onboarding requires both `fullName` and
+  `skillLevel` -- `CompleteOnboardingDto` has no `@IsOptional`. Runs before the happy path so a
+  rejected request provably doesn't stamp `onboarded_at`.
+}

@@ -10,6 +10,12 @@ auth:bearer {
   token: {{idToken}}
 }
 
+script:pre-request {
+  // The API lives under /api/v1 (Nest global prefix + URI versioning, infra/api.ts). Environments keep the bare
+  // host in `baseUrl`; every request uses `apiUrl`, so the version lives in exactly one place.
+  bru.setVar("apiUrl", bru.getEnvVar("baseUrl") + "/api/v1");
+}
+
 docs {
   # Shuttle Connect API
 
@@ -30,6 +36,12 @@ docs {
   ## Running the flow
 
   Requests are sequenced so `bru run` executes them in dependency order:
-  Courts -> Sessions -> Requests. Each create step writes its id into an
-  environment variable (`courtId`, `sessionId`) for the next one to use.
+  Auth -> Courts -> Sessions -> Requests -> Host Decisions -> User. Each create step
+  writes its id into an environment variable (`courtId`, `sessionId`) for the next one.
+
+  ## Versioning
+
+  Every route is under `/api/v1`. Environments hold the bare host in `baseUrl`; the
+  pre-request script above sets `apiUrl = baseUrl + "/api/v1"`, and requests use
+  `{{apiUrl}}`. See README.md -> Environments.
 }

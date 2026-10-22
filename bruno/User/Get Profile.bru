@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/users/me
+  url: {{apiUrl}}/users/me
   body: none
   auth: inherit
 }
@@ -26,6 +26,9 @@ tests {
     const user = res.getBody().data;
     expect(user.id).to.not.match(/^USER/);
     bru.setEnvVar("userId", user.id);
+  });
+  test("exposes the onboarding flag as a boolean", function () {
+    expect(res.getBody().data.onboarded).to.be.a("boolean");
   });
 }
 

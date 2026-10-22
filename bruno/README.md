@@ -24,10 +24,17 @@ bru run --env dev
 
 | Env | Use |
 |---|---|
-| `local` | `http://localhost:3000` -- the Nest server from `main.ts` (AppModule, all three modules) |
+| `local` | `http://localhost:3000` -- the Nest server from `main.ts` (AppModule, all four modules) |
 | `dev` | The deployed API Gateway stage. **Paste your URL into `environments/dev.bru` first.** |
 
 Get the deployed URL from the `sst dev` / `sst deploy` output (`shuttle-connect-api`).
+
+**The API lives under `/api/v1`.** `baseUrl` in each environment is the **bare host**
+(no `/api/v1`). `collection.bru`'s pre-request script derives `apiUrl = baseUrl + "/api/v1"` before
+every request, and every request URL is `{{apiUrl}}/...`. So the version lives in one place:
+for a future v2 endpoint, use `{{baseUrl}}/api/v2/...` in that one request (or add an `apiUrlV2`
+next to `apiUrl`). Don't put `/api/v1` into the environment files. A request that still uses
+`{{baseUrl}}/sessions` hits an unversioned path, which API Gateway now answers with 404.
 
 For `local`, note the DynamoDB and Cognito providers resolve `Resource[...]`, so a bare
 `pnpm run dev:server` crashes at boot. Run it with SST bindings:
@@ -38,8 +45,9 @@ npx sst shell -- pnpm run dev:server
 
 ## Authentication -- two users
 
-`AuthGuard` is live in all three Lambdas. Everything except the public GET routes
-(`GET /sessions`, `GET /sessions/:id`, `GET /courts/:id`) needs a valid Cognito ID token.
+`AuthGuard` is live in all four Lambdas (session, court, request, user). Everything except
+the public GET routes (`GET /api/v1/sessions`, `GET /api/v1/sessions/:id`, `GET /api/v1/courts/:id`) needs
+a valid Cognito ID token.
 
 This collection uses **two** test users, because once D4 (`CannotJoinOwnSessionError`) is
 built, a host can no longer join their own session -- every "someone joins a session"
@@ -100,8 +108,14 @@ Sessions        ->  Create Session             needs {{courtId}}; sets {{session
 Requests        ->  Create Request (player)    needs {{sessionId}}; sets {{playerId}}
 Host Decisions  ->  Approve -> Undo Approval -> Reject -> Undo Rejection (host),
                     with a not-host/still-pending negative case after each undo
-User            ->  Get/Update Profile          the host's own profile
+User            ->  Get Profile -> Update Profile -> Complete Onboarding
+                    (missing level -> 400 first, then the happy path)   the host's own profile
 ```
+
+**Complete Onboarding marks the *host* test account as onboarded** (with the same name/level
+the other User requests use). After a full run, the host skips the web app's first-login
+onboarding screen. To try that screen in the browser, sign in as the **player**
+(`player@example.com`), which these requests never onboard.
 
 `Host Decisions` runs one request through every decision state in sequence: `PENDING` ->
 `APPROVED` (**Approve Request**) -> back to `PENDING` (**Undo Approval**, checks the slot
@@ -139,6 +153,8 @@ route to point them at.
 | `Create Court - invalid city+district` | 400 `INVALID_CITY_DISTRICT` -- a bad pair can't persist an unreachable `location` partition |
 | `Get Court by Id - not found` | 404 `ENTITY_NOT_FOUND` |
 | `Create Request - unknown session` | 404 before the request repository is touched |
+| `Sessions / Create Session - too long` | 400 `SESSION_TOO_LONG` -- `Session.validateTimeSlot` enforces the shared 6-hour `MAX_SESSION_HOURS` |
+| `User / Complete Onboarding - missing level` | 400 `REQUEST_VALIDATION_FAILED` -- unlike `PATCH /users/me`, onboarding requires both `fullName` and `skillLevel`; runs before the happy path so a rejected call provably doesn't set `onboarded_at` |
 
 ## Response envelope
 

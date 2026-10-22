@@ -1,0 +1,39 @@
+meta {
+  name: Complete Onboarding
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{apiUrl}}/users/me/onboarding
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "fullName": "Host user 1",
+    "skillLevel": 3
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.onboarded: eq true
+  res.body.data.fullName: eq Host user 1
+  res.body.data.skillLevel: eq 3
+}
+
+docs {
+  `CompleteOnboardingUseCase` -> `UserRepository.completeOnboarding`: one `UpdateCommand` that sets
+  name + level and `onboarded_at = if_not_exists(onboarded_at, :now)`. PATCH, like `PATCH
+  /users/me` -- both update the user resource, this one just requires both fields and also sets
+  `onboarded_at` as a side effect of completing the step.
+
+  Idempotent on purpose: running this again is a harmless edit and keeps the first timestamp.
+
+  Note: this onboards whichever account the Auth folder signed in as (the host test user), with the
+  same name/level the other User requests already use. Use the *player* account to try the
+  onboarding screen in the browser.
+}
