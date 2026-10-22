@@ -2,20 +2,29 @@ import { Badge } from '@/shared/ui/badge';
 import { SessionStatus } from '@shuttle-connect/types';
 import { useLanguageStore, sessionStatusNames } from '@/shared/i18n';
 
-export const SessionStatusBadge = ({ status }: { status: SessionStatus }) => {
+export const SessionStatusBadge = ({
+  status,
+  className,
+}: {
+  status: SessionStatus;
+  className?: string;
+}) => {
   const language = useLanguageStore((state) => state.language);
 
-  // Per index.css's 60/30/10 note: OPEN is the common case (shows on most cards), so it gets the
-  // neutral-leaning `primary` tag, not a loud color -- CANCELLED (rare, meaningful) is the one
-  // that should stand out, hence `destructive`.
+  // OPEN needs to read clearly as "you can still join" at a glance (it sits on the card's photo
+  // header now, competing with a busy background), so it gets the dedicated `success` green
+  // rather than the paler `primary` tag -- CANCELLED stays `destructive`, the other genuinely
+  // attention-worthy state.
   const variant =
     status === SessionStatus.OPEN
-      ? 'primary'
+      ? 'success'
       : status === SessionStatus.CANCELLED
         ? 'destructive'
         : 'neutral';
 
   return (
-    <Badge variant={variant}>{sessionStatusNames[status][language]}</Badge>
+    <Badge variant={variant} className={className}>
+      {sessionStatusNames[status][language]}
+    </Badge>
   );
 };

@@ -9,14 +9,24 @@ import {
 } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
 import { SessionStatusBadge } from './SessionStatusBadge';
+import { CourtPhoto } from './CourtPhoto';
 import {
   useT,
   useLanguageStore,
   shuttleTypeNames,
   skillLevelNames,
+  areaNames,
 } from '@/shared/i18n';
-import { formatPrice, formatSessionWindow } from '@/shared/lib';
-import { Lock } from 'lucide-react';
+import { formatPriceShort, formatSessionWindow } from '@/shared/lib';
+import {
+  Lock,
+  MapPin,
+  CalendarDays,
+  Users,
+  Coins,
+  ChevronRight,
+  Feather,
+} from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 
 export function SessionCard({
@@ -55,33 +65,54 @@ export function SessionCard({
   const isLastSlot = status === SessionStatus.OPEN && slotsRemaining === 1;
   const isBelowLevel = myLevel !== undefined && myLevel < minSkillLevel;
   const samePrice = priceMale === priceFemale;
+  const priceText = samePrice
+    ? formatPriceShort(priceMale, language)
+    : `${t.maleL} ${formatPriceShort(priceMale, language)} · ${t.femaleL} ${formatPriceShort(priceFemale, language)}`;
 
   const header = (
     <>
-      <CardHeader className="flex items-center justify-between">
+      <CourtPhoto
+        courtId={court.id}
+        className="-mt-6 mb-4 aspect-[5/2] rounded-t-xl"
+      >
+        {court.district && (
+          <Badge
+            variant="neutral"
+            className="absolute top-2 left-2 bg-white/90 text-neutral-800"
+          >
+            <MapPin /> {areaNames[court.district][language]}
+          </Badge>
+        )}
+        <SessionStatusBadge
+          status={status}
+          className="absolute top-2 right-2"
+        />
+      </CourtPhoto>
+      <CardHeader>
         <CardTitle>{court.name}</CardTitle>
-        <SessionStatusBadge status={status} />
       </CardHeader>
       <CardContent className="text-muted-foreground flex flex-col gap-1 text-sm">
-        <span>{formatSessionWindow(startTime, endTime, language)}</span>
+        <span className="flex items-center gap-1.5">
+          <CalendarDays className="size-4 shrink-0" />
+          {formatSessionWindow(startTime, endTime, language)}
+        </span>
         <span className="flex flex-wrap items-center gap-2">
-          <span>
+          <span className="flex items-center gap-1.5">
+            <Users className="size-4 shrink-0" />
             {slotsRemaining} / {slotsTotal} {t.slotsL.toLowerCase()}
           </span>
           {isLastSlot && <Badge variant="accent">{t.lastSlot}</Badge>}
           <Badge
-            variant={isBelowLevel ? 'destructive' : 'neutral'}
+            variant={isBelowLevel ? 'destructive' : 'warning'}
             title={isBelowLevel ? t.belowLevel : undefined}
           >
             {isBelowLevel && <Lock />}
             {skillLevelNames[minSkillLevel][language]}
           </Badge>
         </span>
-        <span>{shuttleTypeNames[shuttleType]}</span>
-        <span>
-          {samePrice
-            ? formatPrice(priceMale, language)
-            : `${t.priceM} ${formatPrice(priceMale, language)} · ${t.priceF} ${formatPrice(priceFemale, language)}`}
+        <span className="flex items-center gap-1.5">
+          <Feather className="size-4 shrink-0" />
+          {shuttleTypeNames[shuttleType]}
         </span>
       </CardContent>
     </>
@@ -100,7 +131,25 @@ export function SessionCard({
       ) : (
         header
       )}
-      {action && <CardFooter>{action}</CardFooter>}
+      <CardFooter className="items-center justify-between gap-2">
+        <div>{action}</div>
+        {linkToDetail ? (
+          <Link
+            to="/sessions/$sessionId"
+            params={{ sessionId: session.id }}
+            className="text-foreground flex items-center gap-1 text-sm font-medium"
+          >
+            <Coins className="text-muted-foreground size-4" />
+            {priceText}
+            <ChevronRight className="text-muted-foreground size-4" />
+          </Link>
+        ) : (
+          <span className="text-foreground flex items-center gap-1 text-sm font-medium">
+            <Coins className="text-muted-foreground size-4" />
+            {priceText}
+          </span>
+        )}
+      </CardFooter>
     </Card>
   );
 }

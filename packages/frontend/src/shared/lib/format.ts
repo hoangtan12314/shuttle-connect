@@ -13,6 +13,21 @@ export function formatPrice(amountVnd: number, language: Language): string {
   }).format(amountVnd);
 }
 
+/** Compact price for tight spots (cards, filter chips): thousands as "k", the way prices are
+ *  written informally in Vietnam -- formatPriceShort(60000, 'vi') -> "60k", 65500 -> "65,5k"
+ *  ("65.5k" in English). Under 1,000 (including free, 0) falls back to the full currency format,
+ *  since "0k" reads oddly. */
+export function formatPriceShort(
+  amountVnd: number,
+  language: Language,
+): string {
+  if (amountVnd < 1000) return formatPrice(amountVnd, language);
+  const thousands = new Intl.NumberFormat(localeFor[language], {
+    maximumFractionDigits: 1,
+  }).format(amountVnd / 1000);
+  return `${thousands}k`;
+}
+
 /** Short weekday + day-of-month for the browse page's 7-day strip, e.g. "Thu" / "17". Never
  *  hardcode weekday names -- Intl.DateTimeFormat already knows them per locale. */
 export function formatDayStrip(
@@ -24,6 +39,18 @@ export function formatDayStrip(
     weekday: new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(date),
     day: new Intl.DateTimeFormat(locale, { day: 'numeric' }).format(date),
   };
+}
+
+// Index = Date.getDay() (0 = Sunday). Vietnamese uses its own compact convention ("T4" = thứ tư),
+// which Intl doesn't produce -- vi-VN's short weekday is "Th 4".
+const VI_WEEKDAY_SHORT = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
+/** Compact weekday for the day strip: "T4" / "CN" in Vietnamese, "Wed" in English. */
+export function formatWeekdayShort(date: Date, language: Language): string {
+  if (language === 'vi') return VI_WEEKDAY_SHORT[date.getDay()];
+  return new Intl.DateTimeFormat(localeFor[language], {
+    weekday: 'short',
+  }).format(date);
 }
 
 /** e.g. formatDateTime('2026-10-17T18:00:00.000Z', 'en') -> "Sat, Oct 17, 6:00 PM". Session

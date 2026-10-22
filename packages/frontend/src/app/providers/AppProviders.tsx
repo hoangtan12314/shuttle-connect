@@ -13,6 +13,11 @@ declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
   }
+  // Per-route flags read by the root layout. `bare`: render the route full-screen, without
+  // AppShell's sidebar/top bar/bottom nav (e.g. the OIDC /callback screen).
+  interface StaticDataRouteOption {
+    bare?: boolean;
+  }
 }
 
 const oidcConfig = {

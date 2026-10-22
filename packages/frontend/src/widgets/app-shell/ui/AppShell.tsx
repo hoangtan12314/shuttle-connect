@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
-import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,29 +32,41 @@ import { cn } from 'cn';
 
 // Module-level, not defined inside AppShell -- a component declared during render is a fresh
 // type every render, so React treats each render's instance as unrelated to the last one and
-// resets its state. ToggleGroup doesn't hold meaningful internal state today, but this is the
-// kind of bug that stays invisible until it doesn't (e.g. an in-progress keyboard-focus ring).
-function LanguageSwitch({
+// resets its state (here: the dropdown would snap shut on any AppShell re-render).
+// Signed-out language picker: a globe icon instead of an always-visible VI|EN pill, so the
+// mobile header has room for logo-left / actions-right. Same two choices signed-in users get in
+// UserMenu's Language submenu below.
+function LanguageMenu({
   language,
   onLanguageChange,
 }: {
   language: Language;
   onLanguageChange: (language: Language) => void;
 }) {
+  const t = useT();
+
   return (
-    <ToggleGroup
-      type="single"
-      value={language}
-      onValueChange={(value) => value && onLanguageChange(value as Language)}
-      variant="outline"
-    >
-      <ToggleGroupItem value="vi">VI</ToggleGroupItem>
-      <ToggleGroupItem value="en">EN</ToggleGroupItem>
-    </ToggleGroup>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label={t.languageL}>
+          <Globe className="size-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={() => onLanguageChange('vi')}>
+          <Check className={cn(language !== 'vi' && 'invisible')} />
+          Tiếng Việt
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onLanguageChange('en')}>
+          <Check className={cn(language !== 'en' && 'invisible')} />
+          English
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
-// Module-level for the same reason as LanguageSwitch above. Wraps `children` (whatever the
+// Module-level for the same reason as LanguageMenu above. Wraps `children` (whatever the
 // trigger should look like -- avatar alone on mobile, avatar+name on desktop) in a dropdown
 // combining features/auth (signOut) and shared/i18n (language) -- the same kind of composition
 // AppShell itself exists for, just scoped to the menu.
@@ -160,7 +171,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    // overflow-x-clip is a safety net: if anything inside ever ends up wider than the screen, it
+    // gets clipped here instead of widening the mobile layout viewport (which would also drag the
+    // fixed bottom nav below the visible area). `clip`, not `hidden`, so it doesn't create a
+    // scroll container and the desktop sidebar's `sticky` keeps working.
+    <div className="flex min-h-screen flex-col overflow-x-clip md:flex-row">
       <nav className="bg-card sticky top-0 hidden h-screen w-60 flex-none flex-col gap-5 overflow-y-auto p-4 md:flex">
         <div>
           <Link to="/">
@@ -214,47 +229,49 @@ export function AppShell({ children }: { children: ReactNode }) {
               </span>
             </UserMenu>
           ) : (
-            <>
-              <LoginButton />
-              <LanguageSwitch
+            <div className="flex items-center gap-2">
+              <LoginButton className="flex-1" />
+              <LanguageMenu
                 language={language}
                 onLanguageChange={setLanguage}
               />
-            </>
+            </div>
           )}
         </div>
       </nav>
 
       {/* Mobile top bar */}
-      <header className="bg-card flex min-h-11 items-center gap-2 p-3 md:hidden">
-        <Link to="/">
+      <header className="bg-card flex min-h-11 items-center justify-between gap-2 p-3 md:hidden">
+        <Link to="/" className="shrink-0">
           <img
             src="/shuttle-connect-logo-horizontal.png"
             alt="Shuttle Connect"
-            className="mr-auto h-6 w-auto"
+            className="h-6 w-auto"
           />
         </Link>
-        {isAuthenticated ? (
-          <UserMenu
-            email={me?.email}
-            language={language}
-            onLanguageChange={setLanguage}
-          >
-            {initials && (
-              <Avatar>
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-            )}
-          </UserMenu>
-        ) : (
-          <>
-            <LanguageSwitch
+        <div className="flex items-center gap-2">
+          {isAuthenticated ? (
+            <UserMenu
+              email={me?.email}
               language={language}
               onLanguageChange={setLanguage}
-            />
-            <LoginButton />
-          </>
-        )}
+            >
+              {initials && (
+                <Avatar>
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+              )}
+            </UserMenu>
+          ) : (
+            <>
+              <LanguageMenu
+                language={language}
+                onLanguageChange={setLanguage}
+              />
+              <LoginButton />
+            </>
+          )}
+        </div>
       </header>
 
       <main className="min-w-0 flex-1 p-4 pb-16 md:p-6 md:pb-6">

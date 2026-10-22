@@ -26,6 +26,11 @@ const badgeVariants = cva(
         accent: 'bg-accent-100 text-accent-800',
         neutral: 'bg-neutral-100 text-neutral-800',
         'primary-outline': 'border-primary bg-transparent text-primary',
+        // Semantic, not palette-named (see index.css's success/warning tokens), and solid like
+        // `destructive` rather than a pale tint -- status/level tags that need to actually stand
+        // out (open & available, a skill-level tier), including sitting on top of a photo.
+        success: 'bg-success text-success-foreground',
+        warning: 'bg-warning text-warning-foreground',
       },
     },
     defaultVariants: {

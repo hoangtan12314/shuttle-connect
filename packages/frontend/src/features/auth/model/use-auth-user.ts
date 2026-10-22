@@ -15,6 +15,9 @@ export function useAuthUser() {
   return {
     isAuthenticated: auth.isAuthenticated,
     isLoading: auth.isLoading,
+    // Set when the OIDC redirect/callback fails (e.g. Cognito returns ?error=..., or the code
+    // exchange is rejected) -- the callback page shows a retry state instead of spinning forever.
+    error: auth.error,
     user: auth.user,
     signIn,
     signOut,

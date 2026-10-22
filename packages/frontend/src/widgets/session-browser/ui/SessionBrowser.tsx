@@ -38,8 +38,24 @@ function matchesTimeOfDay(
   return hour >= 17;
 }
 
+// Diacritic-insensitive so "gia tuong" matches "Gia Tương" -- normalize both sides to NFD and
+// strip the combining marks, rather than requiring the user to type Vietnamese tone marks.
+function normalizeForSearch(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+}
+
+function matchesQuery(session: SessionOverview, query: string): boolean {
+  if (query.trim() === '') return true;
+  return normalizeForSearch(session.court.name).includes(
+    normalizeForSearch(query),
+  );
+}
+
 export function SessionBrowser() {
-  const { city, area, day, timeOfDay, maxPrice, fitOnly, clear } =
+  const { city, area, day, timeOfDay, maxPrice, maxLevel, query, clear } =
     useSessionFilters();
   const { data, isLoading, isError, refetch } = useSessions(city, area);
   const { isAuthenticated } = useAuthUser();
@@ -51,17 +67,36 @@ export function SessionBrowser() {
   const { data: me } = useMe(isAuthenticated);
   const myLevel = me?.skillLevel;
 
+  const courtNames = Array.from(
+    new Set(data?.map((session) => session.court.name)),
+  );
+
   const filtered = data?.filter(
     (session) =>
       matchesDay(session, day) &&
       matchesTimeOfDay(session, timeOfDay) &&
       matchesPrice(session, maxPrice) &&
-      (!fitOnly || myLevel === undefined || myLevel >= session.minSkillLevel),
+      matchesQuery(session, query) &&
+      (maxLevel === null || session.minSkillLevel <= maxLevel),
   );
 
   return (
     <div className="flex flex-col gap-4">
-      <SessionFilters myLevel={myLevel} />
+      {/* Sticky lives here, not inside SessionFilters: where the bar sits while scrolling is a page
+          layout decision. The wrapper bleeds out over <main>'s padding (-mx/-mt, matching main's
+          p-4 / md:p-6) with an opaque background, so cards scrolling up disappear behind a full-
+          width strip instead of peeking out around the filter card's rounded corners. Works
+          because AppShell clips overflow with `overflow-x-clip`, not `hidden` -- `hidden` would
+          make it a scroll container and break `sticky`. */}
+      <div className="bg-background sticky top-0 z-20 -mx-4 -mt-4 px-4 pt-4 pb-2 md:-mx-6 md:-mt-6 md:px-6 md:pt-6">
+        <SessionFilters
+          myLevel={myLevel}
+          courtNames={courtNames}
+          matchCount={
+            isLoading || isError ? undefined : (filtered?.length ?? 0)
+          }
+        />
+      </div>
 
       {isLoading && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -131,12 +166,10 @@ export function SessionBrowser() {
               action={
                 hostedSessionIds.has(session.id) ? (
                   <Link
-                    to="/sessions/$sessionId"
+                    to="/sessions/$sessionId/manage"
                     params={{ sessionId: session.id }}
                   >
-                    <Button variant="outline" className="w-full">
-                      Manage
-                    </Button>
+                    <Button variant="outline">{t.manageT}</Button>
                   </Link>
                 ) : (
                   <JoinSessionButton

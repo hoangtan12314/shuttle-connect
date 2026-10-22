@@ -26,7 +26,7 @@ export function JoinerSessionView({
   const t = useT();
   const language = useLanguageStore((state) => state.language);
   const { data: myRequests } = useMyRequests(isAuthenticated);
-  const setFitOnly = useSessionFilters((state) => state.setFitOnly);
+  const setMaxLevel = useSessionFilters((state) => state.setMaxLevel);
   const existingRequest = myRequests?.find((r) => r.session.id === session.id);
 
   return (
@@ -96,7 +96,7 @@ export function JoinerSessionView({
             body={t.belowLevelB}
             tone="destructive"
           >
-            <Button asChild onClick={() => setFitOnly(true)}>
+            <Button asChild onClick={() => setMaxLevel(myLevel ?? null)}>
               <Link to="/">{t.seeAtMyLevel}</Link>
             </Button>
             <Button asChild variant="outline">
