@@ -26,6 +26,16 @@ export const en = {
   signInFailT: "We couldn't sign you in",
   signInFailB:
     'Something went wrong verifying your account. Try again, or head back to sessions.',
+  welcomeT: 'Welcome to ShuttleConnect!',
+  welcomeB:
+    "Let's set up your profile so we can recommend the best sessions for you.",
+  namePh: 'Enter your name',
+  nameReq: 'Please enter your name',
+  levelReq: 'Pick your skill level',
+  levelHint: 'This helps us match you with suitable players and sessions.',
+  continueBtn: 'Continue',
+  logoutL: 'Log out',
+  tagline: 'Play more · Meet more · Stay active',
   pw: 'Password',
   forgot: 'Forgot password?',
   noAcc: 'New to Shuttle Connect?',

@@ -17,6 +17,9 @@ declare module '@tanstack/react-router' {
   // AppShell's sidebar/top bar/bottom nav (e.g. the OIDC /callback screen).
   interface StaticDataRouteOption {
     bare?: boolean;
+    // Part of the sign-in flow itself (/callback, /onboarding): the root layout's onboarding gate
+    // must not redirect away from these, or a new user could never finish signing in.
+    authFlow?: boolean;
   }
 }
 

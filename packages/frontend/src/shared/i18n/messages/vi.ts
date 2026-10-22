@@ -28,6 +28,16 @@ export const vi = {
   signInFailT: 'Đăng nhập không thành công',
   signInFailB:
     'Có lỗi khi xác minh tài khoản. Thử lại, hoặc quay về danh sách buổi.',
+  welcomeT: 'Chào mừng đến ShuttleConnect!',
+  welcomeB:
+    'Hãy thiết lập hồ sơ để chúng tôi gợi ý những buổi chơi phù hợp nhất.',
+  namePh: 'Nhập tên của bạn',
+  nameReq: 'Vui lòng nhập tên của bạn',
+  levelReq: 'Chọn trình độ của bạn',
+  levelHint: 'Giúp ghép bạn với người chơi và buổi phù hợp.',
+  continueBtn: 'Tiếp tục',
+  logoutL: 'Đăng xuất',
+  tagline: 'Chơi nhiều · Gặp gỡ · Năng động',
   pw: 'Mật khẩu',
   forgot: 'Quên mật khẩu?',
   noAcc: 'Chưa có tài khoản?',

@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as CallbackRouteImport } from './routes/callback'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as SessionsSessionIdRouteImport } from './routes/sessions.$sessionId'
 import { Route as SessionsNewRouteImport } from './routes/sessions.new'
@@ -36,6 +37,11 @@ const CallbackRoute = CallbackRouteImport.update({
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/activity': typeof ActivityRoute
   '/callback': typeof CallbackRoute
   '/notifications': typeof NotificationsRoute
+  '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/sessions/$sessionId': typeof SessionsSessionIdRoute
   '/sessions/new': typeof SessionsNewRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/activity': typeof ActivityRoute
   '/callback': typeof CallbackRoute
   '/notifications': typeof NotificationsRoute
+  '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/sessions/$sessionId': typeof SessionsSessionIdRoute
   '/sessions/new': typeof SessionsNewRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/activity': typeof ActivityRoute
   '/callback': typeof CallbackRoute
   '/notifications': typeof NotificationsRoute
+  '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/sessions/$sessionId': typeof SessionsSessionIdRoute
   '/sessions/new': typeof SessionsNewRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/callback'
     | '/notifications'
+    | '/onboarding'
     | '/profile'
     | '/sessions/$sessionId'
     | '/sessions/new'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/callback'
     | '/notifications'
+    | '/onboarding'
     | '/profile'
     | '/sessions/$sessionId'
     | '/sessions/new'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/callback'
     | '/notifications'
+    | '/onboarding'
     | '/profile'
     | '/sessions/$sessionId'
     | '/sessions/new'
@@ -128,6 +140,7 @@ export interface RootRouteChildren {
   ActivityRoute: typeof ActivityRoute
   CallbackRoute: typeof CallbackRoute
   NotificationsRoute: typeof NotificationsRoute
+  OnboardingRoute: typeof OnboardingRoute
   ProfileRoute: typeof ProfileRoute
   SessionsSessionIdRoute: typeof SessionsSessionIdRoute
   SessionsNewRoute: typeof SessionsNewRoute
@@ -162,6 +175,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -200,6 +220,7 @@ const rootRouteChildren: RootRouteChildren = {
   ActivityRoute: ActivityRoute,
   CallbackRoute: CallbackRoute,
   NotificationsRoute: NotificationsRoute,
+  OnboardingRoute: OnboardingRoute,
   ProfileRoute: ProfileRoute,
   SessionsSessionIdRoute: SessionsSessionIdRoute,
   SessionsNewRoute: SessionsNewRoute,

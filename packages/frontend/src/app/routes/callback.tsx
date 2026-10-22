@@ -5,5 +5,5 @@ import { AuthCallbackPage } from '@/pages/auth-callback';
 
 export const Route = createFileRoute('/callback')({
   component: AuthCallbackPage,
-  staticData: { bare: true },
+  staticData: { bare: true, authFlow: true },
 });

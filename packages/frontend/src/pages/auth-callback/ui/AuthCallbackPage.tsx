@@ -7,30 +7,8 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { CircleAlert, RefreshCw } from 'lucide-react';
 import { useAuthUser } from '@/features/auth';
 import { Button } from '@/shared/ui/button';
+import { AuthBackdrop, AuthLogo } from '@/shared/ui/auth-backdrop';
 import { useT } from '@/shared/i18n';
-
-function Backdrop() {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0">
-      {/* top-left: soft blob + one thin sweeping line */}
-      <div className="bg-accent-100/70 absolute -top-24 -left-24 size-48 rounded-full md:-top-32 md:-left-32 md:size-80" />
-      <svg
-        className="text-accent-300 absolute top-0 left-0 h-36 w-48 md:h-56 md:w-72"
-        viewBox="0 0 288 224"
-        fill="none"
-      >
-        <path
-          d="M0 224C40 170 120 130 180 110C230 92 270 50 288 0"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        />
-      </svg>
-      {/* bottom-right: two overlapping blobs */}
-      <div className="bg-accent-100/70 absolute -right-20 -bottom-32 size-56 rounded-full md:-right-24 md:-bottom-40 md:size-96" />
-      <div className="bg-primary-100/60 absolute -right-10 -bottom-14 size-40 rounded-full md:-bottom-16 md:size-72" />
-    </div>
-  );
-}
 
 export function AuthCallbackPage() {
   const t = useT();
@@ -45,17 +23,9 @@ export function AuthCallbackPage() {
 
   return (
     <div className="bg-background relative flex min-h-svh flex-col items-center overflow-hidden px-6">
-      <Backdrop />
+      <AuthBackdrop />
 
-      <img
-        src="/shuttle-connect-logo-horizontal.png"
-        alt="Shuttle Connect"
-        // The PNG has an opaque near-white background, not transparency. mix-blend-darken keeps
-        // the darker of logo vs. backdrop per pixel, so the artwork stays and the near-white box
-        // takes on the page/blob color behind it (multiply left a faint grey box). A transparent
-        // export of the logo would make this unnecessary.
-        className="relative mt-16 h-9 w-auto mix-blend-darken md:mt-24 md:h-11 dark:mix-blend-normal"
-      />
+      <AuthLogo className="mt-16 md:mt-24" />
 
       <div
         role="status"
