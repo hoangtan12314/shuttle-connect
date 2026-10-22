@@ -136,6 +136,8 @@ export class SessionMapper {
   }
 
   static toOverview(item: Record<string, any>): SessionOverview {
+    const { city, district } = fromLocationKey(item.location);
+
     return {
       id: item.PK.replace('SESSION#', ''),
       status: item.status,
@@ -151,6 +153,8 @@ export class SessionMapper {
         id: item.court_id,
         name: item.court_name,
         coordinates: { lat: item.lat, lng: item.lng },
+        district,
+        city,
       },
     };
   }
