@@ -8,6 +8,9 @@ export interface UserRecord {
   email: string;
   skill_level: SkillLevel;
   created_at: number;
+  // Epoch ms of first-login onboarding. Absent = not onboarded yet (no migration needed: every
+  // pre-existing user simply lacks it).
+  onboarded_at?: number;
 }
 
 export class UserMapper {
@@ -31,6 +34,7 @@ export class UserMapper {
       email: item.email,
       skillLevel: item.skill_level,
       createdAt: new Date(item.created_at).toISOString(),
+      onboarded: item.onboarded_at !== undefined,
     };
   }
 

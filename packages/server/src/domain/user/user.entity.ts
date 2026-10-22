@@ -1,4 +1,4 @@
-import { SkillLevel } from '@shuttle-connect/types';
+import { MAX_FULL_NAME_LENGTH, MIN_FULL_NAME_LENGTH, SkillLevel } from '@shuttle-connect/types';
 import { randomUUID } from 'crypto';
 import { InvalidFieldLengthError } from '../shared/errors';
 import { Email } from '../shared/value-objects';
@@ -10,8 +10,12 @@ export interface UserProps {
   skillLevel: SkillLevel;
 }
 
-export const MAX_NAME_LENGTH = 50;
-export const MIN_NAME_LENGTH = 1;
+// Re-exported under these names so existing consumers (UpdateProfileDto,
+// CompleteOnboardingDto, ...) don't need to change -- only the source of the values moved, to
+// @shuttle-connect/types, so the frontend's onboarding form can read the same numbers instead of
+// hardcoding its own copy (see MAX_SESSION_HOURS for the established pattern).
+export const MAX_NAME_LENGTH = MAX_FULL_NAME_LENGTH;
+export const MIN_NAME_LENGTH = MIN_FULL_NAME_LENGTH;
 
 export class User {
   private constructor(

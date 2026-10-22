@@ -1,8 +1,12 @@
 import { Body, Controller, Get, Inject, Patch } from '@nestjs/common';
 import { type AuthUser, CurrentUser } from '../guard';
-import { GetProfileUseCase, UpdateProfileUseCase } from '../../application/user';
+import {
+  CompleteOnboardingUseCase,
+  GetProfileUseCase,
+  UpdateProfileUseCase,
+} from '../../application/user';
 import { ValidateBodyPipe } from '../pipes';
-import { UpdateProfileDto } from '../dtos/user';
+import { CompleteOnboardingDto, UpdateProfileDto } from '../dtos/user';
 
 @Controller('users')
 export class UserController {
@@ -11,6 +15,8 @@ export class UserController {
     private readonly getProfileUseCase: GetProfileUseCase,
     @Inject(UpdateProfileUseCase)
     private readonly updateProfileUseCase: UpdateProfileUseCase,
+    @Inject(CompleteOnboardingUseCase)
+    private readonly completeOnboardingUseCase: CompleteOnboardingUseCase,
   ) {}
 
   @Get('me')
@@ -26,5 +32,13 @@ export class UserController {
   ) {
     const sessions = await this.updateProfileUseCase.execute(user.id, updateProfileDto);
     return sessions;
+  }
+
+  @Patch('me/onboarding')
+  async completeOnboarding(
+    @CurrentUser() user: AuthUser,
+    @Body(new ValidateBodyPipe(CompleteOnboardingDto)) dto: CompleteOnboardingDto,
+  ) {
+    return this.completeOnboardingUseCase.execute(user.id, dto);
   }
 }

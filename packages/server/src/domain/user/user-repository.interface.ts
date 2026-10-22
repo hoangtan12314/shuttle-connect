@@ -18,6 +18,11 @@ export interface UserRepository {
     id: string,
     fields: { fullName?: string; skillLevel?: SkillLevel },
   ): Promise<UserItemResponse>;
+  // Sets name + level and stamps onboarded_at (first time only -- repeat calls just edit).
+  completeOnboarding(
+    id: string,
+    fields: { fullName: string; skillLevel: SkillLevel },
+  ): Promise<UserItemResponse>;
 }
 
 export const USER_REPOSITORY = Symbol('UserRepository');

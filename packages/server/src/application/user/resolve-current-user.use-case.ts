@@ -41,7 +41,9 @@ export class ResolveCurrentUserUseCase {
     const user = User.create({
       externalAuthId: input.externalAuthId,
       email: input.email,
-      // `name` is a required Cognito attribute; the email fallback is defensive only.
+      // The classic Hosted UI never collects `name` (even though the pool marks it required),
+      // so the email prefix is the normal path, not a fallback. CompleteOnboardingUseCase lets
+      // the user replace it (and the BEGINNER default) on first login.
       fullName: (input.name ?? input.email.split('@')[0]).slice(0, MAX_NAME_LENGTH),
       skillLevel: SkillLevel.BEGINNER,
     });

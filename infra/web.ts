@@ -15,7 +15,7 @@ export const web = new sst.aws.StaticSite("shuttle-connect-web", {
     command: "pnpm run dev",
   },
   environment: {
-    VITE_API_URL: api.url,
+    VITE_API_URL: $interpolate`${api.url}/api/v1`,
     VITE_COGNITO_AUTHORITY: $interpolate`https://cognito-idp.${aws.getRegionOutput().name}.amazonaws.com/${userPool.id}`,
     VITE_COGNITO_CLIENT_ID: userPoolClient.id,
     // Non-null: infra/auth.ts always configures `domain` on the pool, so this is never

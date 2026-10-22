@@ -10,14 +10,18 @@ export const api = new sst.aws.ApiGatewayV2("shuttle-connect-api", {
 // Explicit methods (not ANY) on purpose: an ANY/{proxy+} route also matches OPTIONS, which
 // stops API Gateway's automatic CORS preflight handling and forwards the preflight straight to
 // the Lambda (and, for protected routes, the AuthGuard) instead -- see CLAUDE.md's CORS note.
-api.route("GET /sessions", sessionFunction.arn);
-api.route("POST /sessions", sessionFunction.arn);
-api.route("GET /sessions/{proxy+}", sessionFunction.arn);
-api.route("PATCH /sessions/{proxy+}", sessionFunction.arn);
-api.route("GET /courts", courtFunction.arn);
-api.route("POST /courts", courtFunction.arn);
-api.route("GET /courts/{proxy+}", courtFunction.arn);
-api.route("POST /requests", requestFunction.arn);
-api.route("GET /requests/{proxy+}", requestFunction.arn);
-api.route("GET /users/{proxy+}", userFunction.arn);
-api.route("PATCH /users/{proxy+}", userFunction.arn);
+type Method = "GET" | "POST" | "PATCH";
+const v1 = (method: Method, path: string, fn: sst.aws.Function) =>
+  api.route(`${method} /api/v1${path}`, fn.arn);
+
+v1("GET", "/sessions", sessionFunction);
+v1("POST", "/sessions", sessionFunction);
+v1("GET", "/sessions/{proxy+}", sessionFunction);
+v1("PATCH", "/sessions/{proxy+}", sessionFunction);
+v1("GET", "/courts", courtFunction);
+v1("POST", "/courts", courtFunction);
+v1("GET", "/courts/{proxy+}", courtFunction);
+v1("POST", "/requests", requestFunction);
+v1("GET", "/requests/{proxy+}", requestFunction);
+v1("GET", "/users/{proxy+}", userFunction);
+v1("PATCH", "/users/{proxy+}", userFunction);

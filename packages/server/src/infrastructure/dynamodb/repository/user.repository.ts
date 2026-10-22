@@ -114,4 +114,36 @@ export class UserRepositoryDynamoDB implements UserRepository {
       throw err;
     }
   }
+
+  async completeOnboarding(
+    id: string,
+    fields: { fullName: string; skillLevel: SkillLevel },
+  ): Promise<UserItemResponse> {
+    try {
+      const result = await this.client.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { PK: `USER#${id}`, SK: 'META' },
+          // if_not_exists keeps the FIRST onboarding time: a double-submit or retry becomes a
+          // harmless edit of name/level instead of an error or a moving timestamp.
+          UpdateExpression:
+            'SET full_name = :fullName, skill_level = :skillLevel, onboarded_at = if_not_exists(onboarded_at, :now)',
+          ExpressionAttributeValues: {
+            ':fullName': fields.fullName,
+            ':skillLevel': fields.skillLevel,
+            ':now': Date.now(),
+          },
+          ConditionExpression: 'attribute_exists(PK)',
+          ReturnValues: 'ALL_NEW',
+        }),
+      );
+
+      return UserMapper.toResponse(result.Attributes!);
+    } catch (err) {
+      if (err instanceof ConditionalCheckFailedException) {
+        throw new EntityNotFoundError('User');
+      }
+      throw err;
+    }
+  }
 }

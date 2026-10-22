@@ -3,7 +3,11 @@ import { AuthModule } from './auth.module';
 import { UserController } from '../../controller/user';
 import { USER_REPOSITORY } from '../../domain/user';
 import { UserRepositoryDynamoDB } from '../dynamodb/repository';
-import { GetProfileUseCase, UpdateProfileUseCase } from '../../application/user';
+import {
+  CompleteOnboardingUseCase,
+  GetProfileUseCase,
+  UpdateProfileUseCase,
+} from '../../application/user';
 import { DynamoDbClientProvider, TableNameProvider } from '../dynamodb/provider';
 
 @Module({
@@ -12,6 +16,7 @@ import { DynamoDbClientProvider, TableNameProvider } from '../dynamodb/provider'
   providers: [
     GetProfileUseCase,
     UpdateProfileUseCase,
+    CompleteOnboardingUseCase,
     DynamoDbClientProvider,
     TableNameProvider,
     { provide: USER_REPOSITORY, useClass: UserRepositoryDynamoDB },
