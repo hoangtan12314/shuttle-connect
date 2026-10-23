@@ -64,6 +64,7 @@ export const requestStatusNames: Record<
   [RequestStatus.PENDING]: { vi: 'Chờ duyệt', en: 'Pending' },
   [RequestStatus.APPROVED]: { vi: 'Đã duyệt', en: 'Approved' },
   [RequestStatus.REJECTED]: { vi: 'Không được duyệt', en: 'Not approved' },
+  [RequestStatus.WITHDRAWN]: { vi: 'Đã rút', en: 'Withdrawn' },
 };
 
 // Brand names -- not translated (same string both languages), ported from the design's SH

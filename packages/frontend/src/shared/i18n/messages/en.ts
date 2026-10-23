@@ -155,6 +155,7 @@ export const en = {
   joinedBtn: 'Joined',
   joinNote: 'The host approves each request. You can withdraw anytime.',
   withdrawBtn: 'Withdraw',
+  withdrawnNoteT: 'You withdrew earlier. You can request again.',
 
   pendingT: 'Waiting for the host',
   pendingB: 'We’ll notify you when the host decides.',

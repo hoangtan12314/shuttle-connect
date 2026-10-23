@@ -9,6 +9,7 @@ import { Ban, Check, Clock, Lock, Users, X } from 'lucide-react';
 import { useMyRequests } from '@/entities/request';
 import { SessionCard } from '@/entities/session';
 import { JoinSessionButton } from '@/features/join-session';
+import { useWithdrawRequest } from '@/features/withdraw-request';
 import { useSessionFilters } from '@/features/filter-sessions';
 import { Button } from '@/shared/ui/button';
 import { useT, sessionStatusNames, useLanguageStore } from '@/shared/i18n';
@@ -27,7 +28,11 @@ export function JoinerSessionView({
   const language = useLanguageStore((state) => state.language);
   const { data: myRequests } = useMyRequests(isAuthenticated);
   const setMaxLevel = useSessionFilters((state) => state.setMaxLevel);
+  const { mutate: withdraw, isPending: isWithdrawing } = useWithdrawRequest();
   const existingRequest = myRequests?.find((r) => r.session.id === session.id);
+
+  const isFreeToJoin =
+    !existingRequest || existingRequest.status === RequestStatus.WITHDRAWN;
 
   return (
     <div className="flex flex-col gap-4">
@@ -57,7 +62,11 @@ export function JoinerSessionView({
             body={t.approvedB}
             tone="primary"
           >
-            <Button variant="outline" disabled>
+            <Button
+              variant="outline"
+              disabled={isWithdrawing}
+              onClick={() => withdraw(session.id)}
+            >
               {t.withdrawBtn}
             </Button>
           </StatusCallout>
@@ -66,7 +75,11 @@ export function JoinerSessionView({
       {session.status !== SessionStatus.CANCELLED &&
         existingRequest?.status === RequestStatus.PENDING && (
           <StatusCallout icon={Clock} title={t.pendingT} body={t.pendingB}>
-            <Button variant="outline" disabled>
+            <Button
+              variant="outline"
+              disabled={isWithdrawing}
+              onClick={() => withdraw(session.id)}
+            >
               {t.withdrawBtn}
             </Button>
           </StatusCallout>
@@ -87,7 +100,7 @@ export function JoinerSessionView({
         )}
 
       {session.status !== SessionStatus.CANCELLED &&
-        !existingRequest &&
+        isFreeToJoin &&
         myLevel !== undefined &&
         myLevel < session.minSkillLevel && (
           <StatusCallout
@@ -106,7 +119,7 @@ export function JoinerSessionView({
         )}
 
       {session.status === SessionStatus.FULL &&
-        !existingRequest &&
+        isFreeToJoin &&
         (myLevel === undefined || myLevel >= session.minSkillLevel) && (
           <StatusCallout
             icon={Users}
@@ -120,7 +133,7 @@ export function JoinerSessionView({
         )}
 
       {session.status === SessionStatus.OPEN &&
-        !existingRequest &&
+        isFreeToJoin &&
         (myLevel === undefined || myLevel >= session.minSkillLevel) && (
           <div className="flex flex-col items-center gap-2">
             <JoinSessionButton
@@ -128,7 +141,9 @@ export function JoinerSessionView({
               isAuthenticated={isAuthenticated}
             />
             <p className="text-muted-foreground text-center text-xs">
-              {t.joinNote}
+              {existingRequest?.status === RequestStatus.WITHDRAWN
+                ? t.withdrawnNoteT
+                : t.joinNote}
             </p>
           </div>
         )}

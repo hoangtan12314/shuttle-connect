@@ -62,7 +62,7 @@ export function HostRequestPanel({
                       <ApproveButton request={r} />
                       <RejectButton request={r} />
                     </>
-                  ) : (
+                  ) : r.status === RequestStatus.WITHDRAWN ? null : (
                     <UndoButton request={r} />
                   )
                 }

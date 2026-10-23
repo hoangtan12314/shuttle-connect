@@ -156,6 +156,7 @@ export const vi = {
   joinedBtn: 'Đã tham gia',
   joinNote: 'Host duyệt từng yêu cầu. Bạn có thể rút bất cứ lúc nào.',
   withdrawBtn: 'Rút yêu cầu',
+  withdrawnNoteT: 'Bạn đã rút yêu cầu trước đó. Bạn có thể xin lại.',
 
   pendingT: 'Đang chờ host duyệt',
   pendingB: 'Bạn sẽ nhận thông báo khi host trả lời.',
