@@ -1,0 +1,43 @@
+meta {
+  name: Decide Request - rejects WITHDRAWN
+  type: http
+  seq: 19
+}
+
+patch {
+  url: {{apiUrl}}/sessions/{{sessionId}}/requests/{{playerId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "status": "WITHDRAWN"
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.success: eq false
+  res.body.error.code: eq REQUEST_VALIDATION_FAILED
+}
+
+docs {
+  Regression check (code review finding, 2026-10-23): `DecideRequestDto` used to validate
+  `status` with `@IsEnum(RequestStatus)` -- the whole shared enum, including `WITHDRAWN`.
+  Since `DecideRequestUseCase` only special-cased `REJECTED` and treated everything else as
+  an approval (`if (status === REJECTED) reject(); else approve()`), sending
+  `{"status":"WITHDRAWN"}` to this host-only decide route used to **silently approve** the
+  request instead of being rejected -- consuming a slot on input the host never actually
+  asked to approve.
+
+  Fixed by narrowing the DTO to `@IsIn([PENDING, APPROVED, REJECTED])`, the only three
+  values this route is ever meant to accept (`PENDING` is the undo signal
+  `SessionController` dispatches to `UndoDecisionUseCase`). `WITHDRAWN` is only ever valid
+  on the requester's own `PATCH .../requests/mine/withdraw`. `DecideRequestUseCase` also
+  gained an explicit `input.status !== APPROVED` check (was an implicit `else`) as a second
+  layer, in case a future status value reaches the use case some other way.
+
+  Runs against the shared request regardless of its current actual status -- DTO
+  validation happens before the use case ever reads it.
+}

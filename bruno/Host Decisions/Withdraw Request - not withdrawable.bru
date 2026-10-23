@@ -1,0 +1,29 @@
+meta {
+  name: Withdraw Request - not withdrawable
+  type: http
+  seq: 14
+}
+
+patch {
+  url: {{apiUrl}}/sessions/{{sessionId}}/requests/mine/withdraw
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken2}}
+}
+
+assert {
+  res.status: eq 409
+  res.body.success: eq false
+  res.body.error.code: eq REQUEST_NOT_WITHDRAWABLE
+}
+
+docs {
+  Depends on **Withdraw Request** having just run -- the request is already `WITHDRAWN`,
+  which isn't `PENDING` or `APPROVED`, so `WithdrawRequestUseCase` rejects it before
+  touching the repository at all. The mirror-image check of **Approve Request Again**
+  (deciding something already decided) and **Undo Decision - still pending** (undoing
+  something never decided) -- this one is withdrawing something that's already withdrawn.
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Withdraw Request - no token
+  type: http
+  seq: 12
+}
+
+patch {
+  url: {{apiUrl}}/sessions/{{sessionId}}/requests/mine/withdraw
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 401
+  res.body.success: eq false
+  res.body.error.code: eq UNAUTHORIZED
+}
+
+docs {
+  Same regression check as **Sessions / Create Session - no token** and **Requests /
+  Create Request - no token**: catches `SessionModule` silently losing
+  `imports: [AuthModule]`, which would otherwise let an unauthenticated withdraw through
+  with nothing else noticing. Order-independent -- doesn't touch the shared request's
+  actual state.
+}

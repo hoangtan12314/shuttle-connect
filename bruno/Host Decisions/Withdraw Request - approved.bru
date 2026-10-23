@@ -1,0 +1,28 @@
+meta {
+  name: Withdraw Request - approved
+  type: http
+  seq: 17
+}
+
+patch {
+  url: {{apiUrl}}/sessions/{{sessionId}}/requests/mine/withdraw
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken2}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.status: eq WITHDRAWN
+}
+
+docs {
+  Depends on **Approve Request (for withdraw test)**. This time `wasApproved: true`, so
+  `withdrawRequest` takes `revertApproval`'s shape -- gives the slot back and flips
+  `FULL -> OPEN` if needed -- but lands the request on `WITHDRAWN` instead of `PENDING`.
+  **Get Session After Withdraw** below checks the slot actually came back.
+}

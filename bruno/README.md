@@ -107,7 +107,9 @@ Courts          ->  Create Court               sets {{courtId}}
 Sessions        ->  Create Session             needs {{courtId}}; sets {{sessionId}}, {{userId}}
 Requests        ->  Create Request (player)    needs {{sessionId}}; sets {{playerId}}
 Host Decisions  ->  Approve -> Undo Approval -> Reject -> Undo Rejection (host),
-                    with a not-host/still-pending negative case after each undo
+                    with a not-host/still-pending negative case after each undo,
+                    then Withdraw (player, from PENDING) -> rejoin -> Approve -> Withdraw
+                    (from APPROVED, checks the slot is given back) -- see below
 User            ->  Get Profile -> Update Profile -> Complete Onboarding
                     (missing level -> 400 first, then the happy path)   the host's own profile
 ```
@@ -123,6 +125,17 @@ is given back) -> `REJECTED` (**Reject Request**) -> back to `PENDING` (**Undo R
 **Undo Decision - not host** and **Undo Decision - still pending** are negative cases
 slotted into that chain, not separate setup.
 
+The same folder then continues into Phase 3.5 (withdraw), still against the same shared
+`{{sessionId}}`/`{{playerId}}`: **Withdraw Request** (run as the *player*,
+`{{idToken2}}` -- self-service, no `:userId` in the route) takes the `PENDING` request to
+`WITHDRAWN`; **Withdraw Request - not withdrawable** checks withdrawing it again 409s;
+**Create Request - rejoin after withdraw** proves the `WITHDRAWN` request's item can be
+overwritten by a fresh join (`REJECTED` still blocks a retry -- see **Requests / Create
+Request - duplicate**); **Approve Request (for withdraw test)** re-approves it so
+**Withdraw Request - approved** can exercise the slot-giveback path (`wasApproved: true`,
+`withdrawRequest`'s shape mirrors `revertApproval`'s); **Get Session After Withdraw**
+confirms the slot actually came back.
+
 ## What's not implemented yet
 
 **(2026-10-18: this section was badly stale -- every route it used to list here
@@ -134,12 +147,13 @@ the Undo requests below, since several of those `docs` blocks still read "Implem
 blocked by the same `SessionModule` DI gap..." -- that gap is also fixed; the requests
 pass as written, the leftover wording is just undone doc cleanup, not a live bug.)**
 
-Still actually unimplemented, per the plan (`warm-scribbling-parnas.md`'s Phase 3.5 and
-backend follow-ups): withdrawing a join request (`WITHDRAWN` status, requester-initiated --
-not to be confused with **Undo Approval**/**Undo Rejection** below, which are the *host*
-reversing their own decision, already built), editing or cancelling a session, and
-`homeArea` on the user profile. No `.bru` requests exist for these yet since there's no
-route to point them at.
+**(2026-10-23: Phase 3.5 -- withdrawing a join request -- is now implemented and covered
+above; removed from the unimplemented list below.)**
+
+Still actually unimplemented, per the plan (`warm-scribbling-parnas.md`'s backend
+follow-ups): editing or cancelling a session, server-side list filters, and `homeArea` on
+the user profile. No `.bru` requests exist for these yet since there's no route to point
+them at.
 
 `GSI1`/`GSI2` are already populated correctly by every create (index redesign).
 
@@ -149,12 +163,13 @@ route to point them at.
 |---|---|
 | `Auth / No token`, `Malformed token`, `Wrong scheme` | 401 `UNAUTHORIZED` -- different rejection paths inside `AuthGuard` (missing header, bad JWT, non-Bearer scheme) |
 | `Auth / Access token instead of ID token` | 401 -- the verifier's `tokenUse: 'id'` actually rejects access tokens |
-| `Sessions / Create Session - no token`, `Requests / Create Request - no token` | 401 -- catches a feature module silently losing `imports: [AuthModule]`, which would otherwise return 201 with nothing else noticing |
+| `Sessions / Create Session - no token`, `Requests / Create Request - no token`, `Host Decisions / Withdraw Request - no token` | 401 -- catches a feature module silently losing `imports: [AuthModule]`, which would otherwise return 201/200 with nothing else noticing |
 | `Create Court - invalid city+district` | 400 `INVALID_CITY_DISTRICT` -- a bad pair can't persist an unreachable `location` partition |
 | `Get Court by Id - not found` | 404 `ENTITY_NOT_FOUND` |
 | `Create Request - unknown session` | 404 before the request repository is touched |
 | `Sessions / Create Session - too long` | 400 `SESSION_TOO_LONG` -- `Session.validateTimeSlot` enforces the shared 6-hour `MAX_SESSION_HOURS` |
 | `User / Complete Onboarding - missing level` | 400 `REQUEST_VALIDATION_FAILED` -- unlike `PATCH /users/me`, onboarding requires both `fullName` and `skillLevel`; runs before the happy path so a rejected call provably doesn't set `onboarded_at` |
+| `Host Decisions / Withdraw Request - not withdrawable` | 409 `REQUEST_NOT_WITHDRAWABLE` -- withdrawing an already-`WITHDRAWN` request is rejected before the repository is touched |
 
 ## Response envelope
 

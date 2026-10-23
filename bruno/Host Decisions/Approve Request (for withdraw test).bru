@@ -1,0 +1,31 @@
+meta {
+  name: Approve Request (for withdraw test)
+  type: http
+  seq: 16
+}
+
+patch {
+  url: {{apiUrl}}/sessions/{{sessionId}}/requests/{{playerId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "status": "APPROVED"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.status: eq APPROVED
+}
+
+docs {
+  Depends on **Create Request - rejoin after withdraw**. Re-approves the rejoined request
+  (run as the host, like **Approve Request**) purely to set up **Withdraw Request -
+  approved** below -- needs an `APPROVED` request to withdraw from, to exercise the
+  slot-giveback transaction path, not just the plain-flip path **Withdraw Request** above
+  already covers.
+}

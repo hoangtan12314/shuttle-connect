@@ -33,12 +33,9 @@ docs {
   host's token.
 
   `request.repository.ts`'s `create()` catches `ConditionalCheckFailedException` from the
-  `attribute_not_exists(PK) AND attribute_not_exists(SK)` write and throws
-  `DuplicateRequestError` -> 409. This specific path works correctly.
-
-  **Known gap elsewhere in the same `catch` block:** it only handles
-  `ConditionalCheckFailedException` -- any *other* error (throttling, a network blip) is
-  silently swallowed with no `throw`, so `create()` would resolve successfully even though
-  the write actually failed. Doesn't affect this test (a real duplicate always throws
-  `ConditionalCheckFailedException`), but worth fixing with an `else throw err;`.
+  `attribute_not_exists(PK) OR #s = :withdrawn` write and throws `DuplicateRequestError` ->
+  409. The `OR` half is Phase 3.5: a `WITHDRAWN` request's item can be overwritten by a
+  fresh join (see **Host Decisions / Create Request - rejoin after withdraw**), so this
+  test specifically needs the request to still be *live* (`PENDING` here) for the
+  duplicate guard to actually fire.
 }

@@ -1,0 +1,31 @@
+meta {
+  name: Withdraw Request
+  type: http
+  seq: 13
+}
+
+patch {
+  url: {{apiUrl}}/sessions/{{sessionId}}/requests/mine/withdraw
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken2}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.status: eq WITHDRAWN
+}
+
+docs {
+  Depends on **Undo Rejection** having put the shared request back to `PENDING`. Run as
+  the **player** (`{{idToken2}}`) -- withdrawing is self-service, no `:userId` in the
+  route, unlike decide/undo which are host-only and act on someone else's request.
+
+  `WithdrawRequestUseCase` -> `RequestRepository.withdrawRequest` with `wasApproved: false`
+  (the request was `PENDING`), which mirrors `rejectRequest`'s shape: a plain conditional
+  status flip, no `slots_remaining` touched (a `PENDING` request never held a slot).
+}

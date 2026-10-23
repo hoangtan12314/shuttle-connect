@@ -1,0 +1,25 @@
+meta {
+  name: Get Session After Withdraw
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{apiUrl}}/sessions/{{sessionId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.slotsRemaining: eq 8
+}
+
+docs {
+  Depends on **Withdraw Request - approved** having run. Mirrors **Get Session After Undo
+  Approval**: `slotsTotal` is `8` (see **Sessions / Create Session**), one approval dropped
+  it to `7` (**Approve Request (for withdraw test)**), and withdrawing that approved
+  request should give the slot back -- `8` again. Same assertion value as the undo-approval
+  check, different code path (`withdrawRequest`'s transaction, not `revertApproval`'s).
+}

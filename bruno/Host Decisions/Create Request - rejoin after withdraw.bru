@@ -1,0 +1,36 @@
+meta {
+  name: Create Request - rejoin after withdraw
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{apiUrl}}/requests
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken2}}
+}
+
+body:json {
+  {
+    "sessionId": "{{sessionId}}"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.success: eq true
+  res.body.data.status: eq PENDING
+}
+
+docs {
+  Depends on **Withdraw Request** having run. Without the `create()` duplicate-check
+  relaxation (`attribute_not_exists(PK) OR #s = :withdrawn`), this would 409
+  `DUPLICATE_REQUEST` -- the request item's `PK`/`SK` are the same `(session, user)` pair
+  as before, just overwritten fresh (new `created_at`, status reset to `PENDING`). See
+  **Requests / Create Request - duplicate** for the case this must still block: a second
+  attempt while the existing request is still live (not `WITHDRAWN`).
+}
