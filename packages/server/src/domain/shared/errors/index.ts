@@ -16,3 +16,4 @@ export * from './invalid-session-time.error';
 export * from './session-too-long.error';
 export * from './request-already-decided.error';
 export * from './request-not-decided.error';
+export * from './request-not-withdrawable.error';

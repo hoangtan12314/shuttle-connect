@@ -13,6 +13,7 @@ import {
   DecideRequestUseCase,
   GetRequestsUseCase,
   UndoDecisionUseCase,
+  WithdrawRequestUseCase,
 } from '../../application/request';
 
 @Controller('sessions')
@@ -32,6 +33,8 @@ export class SessionController {
     private readonly decideRequestUseCase: DecideRequestUseCase,
     @Inject(UndoDecisionUseCase)
     private readonly undoDecisionUseCase: UndoDecisionUseCase,
+    @Inject(WithdrawRequestUseCase)
+    private readonly withdrawRequestUseCase: WithdrawRequestUseCase,
   ) {}
 
   @Public()
@@ -70,6 +73,15 @@ export class SessionController {
   ) {
     const createdSessions = await this.createSessionUseCase.execute(user.id, createSessionDTO);
     return createdSessions;
+  }
+
+  // A different path shape from decide (':userId' vs. 'mine'), not the same route with a status
+  // value, on purpose: the authorization story is different (self-service vs. host-only), and no
+  // body is needed -- withdrawing is the only action this route can ever mean.
+  @Patch(':id/requests/mine/withdraw')
+  async withdrawRequest(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    const withdrawnRequest = await this.withdrawRequestUseCase.execute(user.id, id);
+    return withdrawnRequest;
   }
 
   // Undo shares this route/DTO rather than getting its own -- it's still "the host sets this

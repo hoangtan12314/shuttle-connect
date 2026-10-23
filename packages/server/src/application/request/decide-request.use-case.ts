@@ -55,6 +55,12 @@ export class DecideRequestUseCase {
       return this.requestRepository.rejectRequest(sessionId, requesterId);
     }
 
+    if (input.status !== RequestStatus.APPROVED) {
+      throw new Error(
+        `DecideRequestUseCase received an unhandled status "${input.status}". Fatal unreachable error.`,
+      );
+    }
+
     if (session.status !== SessionStatus.OPEN) {
       throw new SessionNotOpenError(session.status);
     }

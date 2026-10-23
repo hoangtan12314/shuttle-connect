@@ -19,6 +19,7 @@ import {
   DecideRequestUseCase,
   GetRequestsUseCase,
   UndoDecisionUseCase,
+  WithdrawRequestUseCase,
 } from '../../application/request';
 import { REQUEST_REPOSITORY } from '../../domain/request';
 
@@ -33,6 +34,7 @@ import { REQUEST_REPOSITORY } from '../../domain/request';
     DecideRequestUseCase,
     GetRequestsUseCase,
     UndoDecisionUseCase,
+    WithdrawRequestUseCase,
     DynamoDbClientProvider,
     TableNameProvider,
     { provide: SESSION_REPOSITORY, useClass: SessionRepositoryDynamoDB },

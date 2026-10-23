@@ -26,6 +26,7 @@ import {
   DuplicateRequestError,
   EntityNotFoundError,
   RequestAlreadyDecidedError,
+  RequestNotWithdrawableError,
 } from '../../../domain/shared/errors';
 
 @Injectable()
@@ -186,6 +187,82 @@ export class RequestRepositoryDynamoDB implements RequestRepository {
     }
   }
 
+  // Requester-initiated. wasApproved picks the shape: false is rejectRequest's shape (plain
+  // conditional flip, PENDING -> WITHDRAWN, no slots touched); true is revertApproval's shape
+  // (give the slot back, flip FULL -> OPEN) but landing on WITHDRAWN instead of PENDING.
+  async withdrawRequest(
+    sessionId: string,
+    userId: string,
+    { wasApproved, currentSlotsRemaining }: { wasApproved: boolean; currentSlotsRemaining: number },
+  ): Promise<void> {
+    if (!wasApproved) {
+      try {
+        await this.client.send(
+          new UpdateCommand({
+            TableName: this.tableName,
+            Key: { PK: `SESSION#${sessionId}`, SK: `REQUEST#USER#${userId}` },
+            UpdateExpression: 'SET #s = :withdrawn',
+            ConditionExpression: '#s = :pending',
+            ExpressionAttributeNames: { '#s': 'status' },
+            ExpressionAttributeValues: {
+              ':withdrawn': RequestStatus.WITHDRAWN,
+              ':pending': RequestStatus.PENDING,
+            },
+          }),
+        );
+      } catch (err) {
+        if (err instanceof ConditionalCheckFailedException) {
+          throw new RequestNotWithdrawableError();
+        }
+        throw err;
+      }
+      return;
+    }
+
+    try {
+      const nextSlotsRemaining = currentSlotsRemaining + 1;
+      await this.client.send(
+        new TransactWriteCommand({
+          TransactItems: [
+            {
+              Update: {
+                TableName: this.tableName,
+                Key: { PK: `SESSION#${sessionId}`, SK: `REQUEST#USER#${userId}` },
+                UpdateExpression: 'SET #s = :withdrawn',
+                ConditionExpression: '#s = :approved',
+                ExpressionAttributeNames: { '#s': 'status' },
+                ExpressionAttributeValues: {
+                  ':withdrawn': RequestStatus.WITHDRAWN,
+                  ':approved': RequestStatus.APPROVED,
+                },
+              },
+            },
+            {
+              Update: {
+                TableName: this.tableName,
+                Key: { PK: `SESSION#${sessionId}`, SK: 'META' },
+                UpdateExpression: 'SET slots_remaining = :next, #s = :open',
+                ConditionExpression: 'slots_remaining = :current AND (#s = :open OR #s = :full)',
+                ExpressionAttributeNames: { '#s': 'status' },
+                ExpressionAttributeValues: {
+                  ':next': nextSlotsRemaining,
+                  ':current': currentSlotsRemaining,
+                  ':open': SessionStatus.OPEN,
+                  ':full': SessionStatus.FULL,
+                },
+              },
+            },
+          ],
+        }),
+      );
+    } catch (err) {
+      if (err instanceof TransactionCanceledException) {
+        throw new ConcurrentUpdateError();
+      }
+      throw err;
+    }
+  }
+
   async getBySessionAndUser(
     sessionId: string,
     userId: string,
@@ -268,7 +345,14 @@ export class RequestRepositoryDynamoDB implements RequestRepository {
     const command = new PutCommand({
       TableName: this.tableName,
       Item: itemToBeSaved,
-      ConditionExpression: 'attribute_not_exists(PK) AND attribute_not_exists(SK)',
+      // A withdrawn request's item can be overwritten by a fresh one -- withdrawing frees the
+      // user to request the same session again (see JoinerSessionView's note copy for a
+      // WITHDRAWN existing request). REJECTED is deliberately NOT included: the host said no,
+      // and the design only offers "find another session" for that case, not a retry -- so the
+      // duplicate guard still blocks it.
+      ConditionExpression: 'attribute_not_exists(PK) OR #s = :withdrawn',
+      ExpressionAttributeNames: { '#s': 'status' },
+      ExpressionAttributeValues: { ':withdrawn': RequestStatus.WITHDRAWN },
     });
 
     try {

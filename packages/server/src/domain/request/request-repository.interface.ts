@@ -22,6 +22,14 @@ export interface RequestRepository {
   // (rejected requests never touched slots, so neither does undoing one).
   revertApproval(sessionId: string, userId: string, currentSlotsRemaining: number): Promise<void>;
   revertRejection(sessionId: string, userId: string): Promise<void>;
+  // Requester-initiated, from PENDING or APPROVED. wasApproved picks the shape: APPROVED mirrors
+  // revertApproval (gives the slot back, flips FULL -> OPEN) but lands on WITHDRAWN instead of
+  // PENDING; PENDING is a plain status flip, same as rejectRequest's shape.
+  withdrawRequest(
+    sessionId: string,
+    userId: string,
+    options: { wasApproved: boolean; currentSlotsRemaining: number },
+  ): Promise<void>;
 }
 
 export const REQUEST_REPOSITORY = Symbol('RequestRepository');
