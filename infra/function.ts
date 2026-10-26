@@ -1,7 +1,7 @@
 import { userPool, userPoolClient } from "./auth";
 import { table } from "./database";
 
-const externalEsbuildConfig = {
+export const externalEsbuildConfig = {
   esbuild: {
     external: [
       "@aws-sdk/*",

@@ -8,6 +8,12 @@ export const table = new sst.aws.Dynamo("shuttle-connect", {
     GSI2SK: "string",
   },
   primaryIndex: { hashKey: "PK", rangeKey: "SK" },
+  // Feeds the request-withdrawn stream subscriber (infra/notification.ts) -- new-and-old-images
+  // so it can tell PENDING/APPROVED -> WITHDRAWN transitions apart from every other write.
+  stream: "new-and-old-images",
+  // NOTIF# items carry expires_at (epoch seconds); DynamoDB deletes them for free once it's past,
+  // so the notifications list doesn't grow forever (documentation/DATABASE_DESIGN.md).
+  ttl: "expires_at",
   globalIndexes: {
     // Sessions (SLOC#<city>#<district>, start_time) and courts (CLOC#<city>#<district>, created_at)
     // share this index in separate partitions -- "browse sessions in a district" and "list courts
