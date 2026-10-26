@@ -11,8 +11,9 @@ Single-table design for the Shuttle Connect badminton session-booking app. One p
 | Court | `COURT#<courtId>` | `META` |
 | User | `USER#<userId>` | `META` |
 | Auth pointer (Cognito `sub` → internal user id) | `AUTH#<cognitoSub>` | `META` |
+| Notification (a host's copy of an event) | `USER#<hostId>` | `NOTIF#<epochMs>#<eventId>` |
 
-Session and Request items share the same PK so a single `Query` on the base table returns a session together with every request against it (an "item collection"). The Auth pointer is a separate item from the User it resolves to — see `documentation` / `CLAUDE.md`'s "Auth" section for why identity is two ids, not one.
+Session and Request items share the same PK so a single `Query` on the base table returns a session together with every request against it (an "item collection"). The Auth pointer is a separate item from the User it resolves to — see `documentation` / `CLAUDE.md`'s "Auth" section for why identity is two ids, not one. Notification items share the host's User PK for the same reason — one `Query` on `PK = USER#<hostId>, begins_with(SK, "NOTIF#")` lists them (see §5), no separate index.
 
 **Place format — `location` is the only persisted place attribute.** Every place-bearing item (Court, Session, Request) stores exactly one field:
 
@@ -38,6 +39,7 @@ Every GSI key is a dedicated attribute (`GSI1PK`, `GSI1SK`, `GSI2PK`, `GSI2SK`) 
 | 2 | Browse sessions by city + district, sorted by start time | Medium-high | GSI1 |
 | 3 | List courts by city + district | Medium | GSI1 |
 | 4 | Get sessions a user hosts or has requested to join | Medium | GSI2 |
+| 5 | List a host's withdrawal notifications, newest first | Low | Main table |
 
 Access patterns #2–#4 are index-ready today (every write populates the right keys), but no
 query/endpoint consumes #2–#4 yet — `GET /sessions` is still `SessionRepositoryDynamoDB.listAll()`
@@ -139,6 +141,55 @@ discards non-matches afterward.
 
 ---
 
+## 5. Host withdrawal notifications (Main table)
+
+**Why:** a host needs to know promptly when someone withdraws from their session (they may have
+already paid for the court). Written by a DynamoDB Streams-triggered Lambda
+(`request-withdrawn`, `infra/notification.ts`), not inside `WithdrawRequestUseCase` itself —
+decoupling the notification from the withdraw transaction means a notification failure can never
+roll back, or even delay, the withdraw. See `CLAUDE.md`'s late-withdrawal-protection section for
+the full rationale.
+
+```
+PK = "USER#<hostId>"
+SK = "NOTIF#<epochMs>#<eventId>"
+```
+
+```
+Query:
+  PK = "USER#1"
+  begins_with(SK, "NOTIF#")
+  ScanIndexForward: false   (newest first)
+  Limit: 30
+```
+
+Each item carries `type` (`NotificationType`, currently only `REQUEST_WITHDRAWN`),
+`session_id`/`court_name`/`session_start_time` (copied from the request item's own
+denormalized fields — no extra read), `actor_name` (the withdrawing player), `was_approved`
+(from the stream record's old image), `created_at`, and `expires_at`.
+
+**Idempotency.** The stream can redeliver a record. The SK's `eventId` suffix is the stream
+record's own `eventID`, and the write uses `ConditionExpression: attribute_not_exists(SK)` — a
+redelivery just fails that condition and is swallowed, so the host never sees a duplicate.
+
+**Read watermark, not per-item read flags.** The `USER#<id>/META` item (the same item `findById`
+already reads) gains one optional attribute, `notifications_read_at` (epoch ms). A notification is
+unread if its `created_at` is after that watermark; absent = everything is unread. "Mark all read"
+is one `UpdateCommand` on `META`, not one write per notification.
+
+**TTL cleanup.** `expires_at` (epoch **seconds**, `created_at` + 60 days) is the table's configured
+TTL attribute (`infra/database.ts`) — DynamoDB deletes expired rows for free, so this list doesn't
+grow forever.
+
+**Event filtering.** The Lambda's event source mapping filters on `SK` beginning with `REQUEST#`
+and the old/new image's `status` transitioning `PENDING`/`APPROVED` → `WITHDRAWN`, evaluated by
+AWS *before* the Lambda runs — approvals, rejections, and court creations never cost an
+invocation. This is a second, independent Streams consumer from the denormalization fan-out
+below — different filter, different Lambda, implemented now where the fan-out below is still
+design intent.
+
+---
+
 ## Deferred: sessions at a specific court
 
 An earlier design had a third GSI (`court_id` → `created_at`) for this, but nothing ever queried it,
@@ -167,7 +218,7 @@ To avoid a second lookup on common reads, some fields are copied ("denormalized"
 3. **Court changed** → query the (deferred) court-index for that `court_id` → get every affected session → for each, also `Query` the base table on `PK = SESSION#<id>` to reach its request items → batch-update the copied fields on both levels.
 4. **User changed** → query GSI2 for that `user_id` → get every session they host and every request they've made → batch-update the copied fields.
 
-This is eventual consistency: there's a brief lag between the source change and every copy catching up. Acceptable here since court/name changes are rare, and the trade-off favors the far more frequent case (rendering session/request lists without a join). None of this Streams/Lambda fan-out is implemented yet — this section is design intent.
+This is eventual consistency: there's a brief lag between the source change and every copy catching up. Acceptable here since court/name changes are rare, and the trade-off favors the far more frequent case (rendering session/request lists without a join). None of this particular Streams/Lambda fan-out (repairing stale denormalized copies) is implemented yet — this section is design intent. The table's stream is live, though: §5's withdrawal notifications are a separate, already-implemented Streams consumer, with its own filter and Lambda.
 
 ---
 
