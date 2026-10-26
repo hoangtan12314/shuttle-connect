@@ -3,3 +3,5 @@ export * from './court.module';
 export * from './request.module';
 export * from './auth.module';
 export * from './user.module';
+export * from './notification.module';
+export * from './notification-stream.module';
