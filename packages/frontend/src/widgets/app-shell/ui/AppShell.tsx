@@ -27,8 +27,20 @@ import {
 } from '@/shared/ui/dropdown-menu';
 import { useAuthUser, LoginButton } from '@/features/auth';
 import { useMe } from '@/entities/user';
+import { unreadCount, useNotifications } from '@/entities/notification';
 import { useT, useLanguageStore, type Language } from '@/shared/i18n';
 import { cn } from 'cn';
+
+// Capped display per the plan ("9+") -- an exact count past single digits doesn't help and
+// doesn't fit the pill.
+function NotificationBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span className="bg-destructive absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-0.5 text-[10px] font-bold text-white">
+      {count > 9 ? '9+' : count}
+    </span>
+  );
+}
 
 // Module-level, not defined inside AppShell -- a component declared during render is a fresh
 // type every render, so React treats each render's instance as unrelated to the last one and
@@ -150,6 +162,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const setLanguage = useLanguageStore((state) => state.setLanguage);
   const { isAuthenticated } = useAuthUser();
   const { data: me } = useMe(isAuthenticated);
+  const { data: notifications } = useNotifications(isAuthenticated);
+  const unread = notifications
+    ? unreadCount(notifications.items, notifications.lastReadAt)
+    : 0;
 
   const initials = me?.fullName
     ? me.fullName
@@ -202,7 +218,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               className="text-foreground hover:bg-primary-100 flex min-h-12 items-center gap-3 rounded-xl px-3 font-semibold transition-colors"
               activeProps={{ className: 'bg-primary-100 text-primary-800' }}
             >
-              <Icon className="size-5" />
+              <span className="relative">
+                <Icon className="size-5" />
+                {to === '/notifications' && (
+                  <NotificationBadge count={unread} />
+                )}
+              </span>
               {label}
             </Link>
           ))}
@@ -308,7 +329,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           className="flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold"
           activeProps={{ className: 'text-primary-700' }}
         >
-          <Bell className="size-5" />
+          <span className="relative">
+            <Bell className="size-5" />
+            <NotificationBadge count={unread} />
+          </span>
           {t.navAlerts}
         </Link>
       </nav>

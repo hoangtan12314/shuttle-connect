@@ -64,6 +64,9 @@ export const en = {
   notifsT: 'Notifications',
   markRead: 'Mark all read',
   newLabel: 'New',
+  notifEmptyT: 'No notifications yet',
+  notifEmptyB: 'You’ll see updates here when something happens.',
+  notifWithdrawnMid: 'withdrew from',
 
   detailT: 'Session',
   slotsL: 'Slots',
@@ -156,6 +159,8 @@ export const en = {
   joinNote: 'The host approves each request. You can withdraw anytime.',
   withdrawBtn: 'Withdraw',
   withdrawnNoteT: 'You withdrew earlier. You can request again.',
+  withdrawClosedNote:
+    'Too close to start to withdraw (under 6 hours). Please tell the host directly.',
 
   pendingT: 'Waiting for the host',
   pendingB: 'We’ll notify you when the host decides.',

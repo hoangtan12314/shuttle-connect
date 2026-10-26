@@ -9,7 +9,10 @@ import { Ban, Check, Clock, Lock, Users, X } from 'lucide-react';
 import { useMyRequests } from '@/entities/request';
 import { SessionCard } from '@/entities/session';
 import { JoinSessionButton } from '@/features/join-session';
-import { useWithdrawRequest } from '@/features/withdraw-request';
+import {
+  isWithinWithdrawCutoff,
+  useWithdrawRequest,
+} from '@/features/withdraw-request';
 import { useSessionFilters } from '@/features/filter-sessions';
 import { Button } from '@/shared/ui/button';
 import { useT, sessionStatusNames, useLanguageStore } from '@/shared/i18n';
@@ -33,6 +36,10 @@ export function JoinerSessionView({
 
   const isFreeToJoin =
     !existingRequest || existingRequest.status === RequestStatus.WITHDRAWN;
+  // Computed once per render, not inline at each use site -- two separate Date.now() reads could
+  // otherwise disagree right at the 6h boundary (button enabled while the note still shows, or
+  // vice versa) for that one render.
+  const isPastCutoff = isWithinWithdrawCutoff(session.startTime);
 
   return (
     <div className="flex flex-col gap-4">
@@ -62,13 +69,20 @@ export function JoinerSessionView({
             body={t.approvedB}
             tone="primary"
           >
-            <Button
-              variant="outline"
-              disabled={isWithdrawing}
-              onClick={() => withdraw(session.id)}
-            >
-              {t.withdrawBtn}
-            </Button>
+            <div className="flex flex-col items-center gap-2">
+              <Button
+                variant="outline"
+                disabled={isWithdrawing || isPastCutoff}
+                onClick={() => withdraw(session.id)}
+              >
+                {t.withdrawBtn}
+              </Button>
+              {isPastCutoff && (
+                <p className="text-muted-foreground max-w-sm text-center text-xs">
+                  {t.withdrawClosedNote}
+                </p>
+              )}
+            </div>
           </StatusCallout>
         )}
 

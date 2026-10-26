@@ -63,6 +63,9 @@ export const vi = {
   newSession: 'Tạo buổi mới',
   notifsT: 'Thông báo',
   markRead: 'Đánh dấu đã đọc',
+  notifEmptyT: 'Chưa có thông báo',
+  notifEmptyB: 'Bạn sẽ thấy thông báo ở đây khi có cập nhật mới.',
+  notifWithdrawnMid: 'đã rút khỏi buổi',
   newLabel: 'Mới',
 
   detailT: 'Chi tiết buổi',
@@ -157,6 +160,8 @@ export const vi = {
   joinNote: 'Host duyệt từng yêu cầu. Bạn có thể rút bất cứ lúc nào.',
   withdrawBtn: 'Rút yêu cầu',
   withdrawnNoteT: 'Bạn đã rút yêu cầu trước đó. Bạn có thể xin lại.',
+  withdrawClosedNote:
+    'Đã quá hạn rút (dưới 6 giờ trước giờ chơi). Hãy báo trực tiếp cho host.',
 
   pendingT: 'Đang chờ host duyệt',
   pendingB: 'Bạn sẽ nhận thông báo khi host trả lời.',
