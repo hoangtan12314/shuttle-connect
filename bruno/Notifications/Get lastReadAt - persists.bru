@@ -1,0 +1,28 @@
+meta {
+  name: Get lastReadAt - persists
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{apiUrl}}/users/me/notifications
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+}
+
+tests {
+  test("lastReadAt from Mark read is still there on a fresh GET", function () {
+    expect(res.getBody().data.lastReadAt).to.equal(bru.getVar("lastReadAt"));
+  });
+}
+
+docs {
+  Depends on **Mark read** above. A plain `GetItem`/`Query` read, not cached state --
+  this is really a repository-correctness check (`getReadAt` reads back what `markAllRead`
+  wrote), not of the stream/notification path itself.
+}

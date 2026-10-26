@@ -1,0 +1,28 @@
+meta {
+  name: Approve Soon Request
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{apiUrl}}/sessions/{{soonSessionId}}/requests/{{soonPlayerId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "status": "APPROVED"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.status: eq APPROVED
+}
+
+docs {
+  Runs as the **host**. Approves the rejoined request so **Withdraw - inside cutoff**
+  below has an `APPROVED` request to test the cutoff against.
+}

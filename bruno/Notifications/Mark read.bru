@@ -1,0 +1,35 @@
+meta {
+  name: Mark read
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{apiUrl}}/users/me/notifications/read
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.setVar("lastReadAt", res.getBody().data.lastReadAt);
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+}
+
+tests {
+  test("returns the new read watermark", function () {
+    expect(res.getBody().data.lastReadAt).to.be.a("string");
+  });
+}
+
+docs {
+  Runs as the **host**. Sets `notifications_read_at` on the host's `USER#<id>/META` item to
+  now -- one `UpdateCommand`, not one write per notification (see the plan's
+  read-watermark note). **Get lastReadAt - persists** below confirms a follow-up read sees
+  the same value.
+}

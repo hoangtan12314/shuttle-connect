@@ -1,0 +1,34 @@
+meta {
+  name: Rejoin Soon Session
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{apiUrl}}/requests
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken2}}
+}
+
+body:json {
+  {
+    "sessionId": "{{soonSessionId}}"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.success: eq true
+  res.body.data.status: eq PENDING
+}
+
+docs {
+  The `WITHDRAWN` request's item can be overwritten by a fresh join (same rule the
+  `Host Decisions` folder's **Create Request - rejoin after withdraw** already pins) --
+  needed here to get a fresh `PENDING` request to approve for the cutoff-on-`APPROVED`
+  check below.
+}

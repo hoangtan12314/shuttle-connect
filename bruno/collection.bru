@@ -36,8 +36,9 @@ docs {
   ## Running the flow
 
   Requests are sequenced so `bru run` executes them in dependency order:
-  Auth -> Courts -> Sessions -> Requests -> Host Decisions -> User. Each create step
-  writes its id into an environment variable (`courtId`, `sessionId`) for the next one.
+  Auth -> Courts -> Sessions -> Requests -> Host Decisions -> User -> Withdraw Cutoff ->
+  Notifications. Each create step writes its id into an environment variable (`courtId`,
+  `sessionId`) for the next one.
 
   ## Versioning
 

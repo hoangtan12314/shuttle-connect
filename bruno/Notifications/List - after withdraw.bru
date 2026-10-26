@@ -1,0 +1,50 @@
+meta {
+  name: List - after withdraw
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{apiUrl}}/users/me/notifications
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  // The DynamoDB Streams -> Lambda -> notification write is asynchronous (eventual
+  // consistency, by design -- see infra/notification.ts's docs). By the time this folder runs,
+  // Host Decisions and Withdraw Cutoff have already triggered several withdrawals; this just
+  // gives the stream a moment to catch up before asserting on the result.
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+}
+
+tests {
+  test("the host has at least one withdrawal notification", function () {
+    const data = res.getBody().data;
+    expect(data.items.length).to.be.greaterThan(0);
+  });
+
+  test("newest item is a REQUEST_WITHDRAWN notification with the actor's name", function () {
+    const item = res.getBody().data.items[0];
+    expect(item.type).to.equal("REQUEST_WITHDRAWN");
+    expect(item.actorName).to.be.a("string").that.is.not.empty;
+    expect(item.sessionId).to.be.a("string");
+    expect(item.courtName).to.be.a("string");
+  });
+}
+
+docs {
+  Runs as the **host** (`auth: inherit`). By this point in the run, **Host Decisions**
+  withdrew the shared request twice (`PENDING` then `APPROVED`, see its own docs) and
+  **Withdraw Cutoff** withdrew a `PENDING` request on a separate soon-starting session --
+  each of those is a `request-withdrawn` DynamoDB Streams invocation
+  (`infra/notification.ts`), so the host should have at least one `NOTIF#` row by now.
+
+  Items are newest-first (`ScanIndexForward: false`), so `items[0]` is whichever withdrawal
+  landed last -- the exact one doesn't matter here, only that the shape is right.
+}

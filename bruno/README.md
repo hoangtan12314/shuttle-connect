@@ -112,6 +112,11 @@ Host Decisions  ->  Approve -> Undo Approval -> Reject -> Undo Rejection (host),
                     (from APPROVED, checks the slot is given back) -- see below
 User            ->  Get Profile -> Update Profile -> Complete Onboarding
                     (missing level -> 400 first, then the happy path)   the host's own profile
+Withdraw Cutoff ->  its own soon-starting session/request (own env vars, doesn't touch
+                    {{sessionId}}/{{playerId}}): PENDING withdraw inside the cutoff still
+                    succeeds, then an APPROVED withdraw inside the cutoff 409s
+Notifications   ->  List (host, after a ~3s stream delay) -> Mark read -> List again
+                    (confirms lastReadAt persists)
 ```
 
 **Complete Onboarding marks the *host* test account as onboarded** (with the same name/level
@@ -135,6 +140,23 @@ Request - duplicate**); **Approve Request (for withdraw test)** re-approves it s
 **Withdraw Request - approved** can exercise the slot-giveback path (`wasApproved: true`,
 `withdrawRequest`'s shape mirrors `revertApproval`'s); **Get Session After Withdraw**
 confirms the slot actually came back.
+
+`Withdraw Cutoff` exercises the 6h late-withdrawal protection added on top of Phase 3.5:
+**Create Session - starts soon** makes a session 2h out (inside the cutoff, unlike the
+shared `{{sessionId}}` which starts "tomorrow"); **Join Soon Session** requests it;
+**Withdraw - pending inside cutoff** confirms a `PENDING` withdraw is still allowed at any
+time (the host never held that slot); **Rejoin Soon Session** -> **Approve Soon Request**
+get an `APPROVED` request on the same soon session; **Withdraw - inside cutoff** then 409s
+with `WITHDRAWAL_WINDOW_CLOSED`.
+
+`Notifications` exercises Part C's host-facing withdrawal notifications. By the time it
+runs, several withdrawals have already gone through `request-withdrawn`
+(`infra/notification.ts`'s DynamoDB Streams subscriber), each writing a `NOTIF#` row under
+the host. **List - after withdraw** waits ~3s for that async stream delivery, then asserts
+the host has at least one `REQUEST_WITHDRAWN` notification with the actor's name set;
+**Mark read** sets the read watermark (`notifications_read_at`, one `UpdateCommand`, not
+one write per notification); **Get lastReadAt - persists** confirms a follow-up read sees
+the same value.
 
 ## What's not implemented yet
 
@@ -170,6 +192,8 @@ them at.
 | `Sessions / Create Session - too long` | 400 `SESSION_TOO_LONG` -- `Session.validateTimeSlot` enforces the shared 6-hour `MAX_SESSION_HOURS` |
 | `User / Complete Onboarding - missing level` | 400 `REQUEST_VALIDATION_FAILED` -- unlike `PATCH /users/me`, onboarding requires both `fullName` and `skillLevel`; runs before the happy path so a rejected call provably doesn't set `onboarded_at` |
 | `Host Decisions / Withdraw Request - not withdrawable` | 409 `REQUEST_NOT_WITHDRAWABLE` -- withdrawing an already-`WITHDRAWN` request is rejected before the repository is touched |
+| `Withdraw Cutoff / Withdraw - inside cutoff` | 409 `WITHDRAWAL_WINDOW_CLOSED` -- an `APPROVED` request can't be withdrawn within 6h of session start; `Withdraw - pending inside cutoff` is the control case proving `PENDING` still can |
+| `Notifications / List - no token` | 401 -- catches `NotificationModule` silently losing `imports: [AuthModule]` |
 
 ## Response envelope
 

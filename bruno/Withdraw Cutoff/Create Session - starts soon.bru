@@ -1,0 +1,52 @@
+meta {
+  name: Create Session - starts soon
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{apiUrl}}/sessions
+  body: json
+  auth: inherit
+}
+
+script:pre-request {
+  const start = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2h from now -- inside the 6h cutoff
+  const end = new Date(start.getTime() + 1 * 60 * 60 * 1000); // +1h
+  bru.setVar("soonStartTime", start.toISOString());
+  bru.setVar("soonEndTime", end.toISOString());
+}
+
+body:json {
+  {
+    "courtId": "{{courtId}}",
+    "startTime": "{{soonStartTime}}",
+    "endTime": "{{soonEndTime}}",
+    "slotsRemaining": 8,
+    "slotsTotal": 8,
+    "priceMale": 60000,
+    "priceFemale": 40000,
+    "shuttleType": "YONEX_AS30",
+    "minSkillLevel": 3,
+    "description": "Starts soon -- withdraw cutoff test"
+  }
+}
+
+script:post-response {
+  const data = res.getBody() && res.getBody().data;
+  if (data && data.id) {
+    bru.setEnvVar("soonSessionId", data.id);
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  Runs as the **host** (`auth: inherit`). A separate session from the shared
+  `{{sessionId}}` used by **Host Decisions**, starting only 2h from now so it sits inside
+  `WITHDRAW_CUTOFF_HOURS` (6h) -- `{{sessionId}}`'s own session starts "tomorrow" and can't
+  exercise this check. Own folder, own env vars (`soonSessionId`, `soonPlayerId`), so this
+  doesn't disturb anything **Host Decisions** or later folders depend on.
+}

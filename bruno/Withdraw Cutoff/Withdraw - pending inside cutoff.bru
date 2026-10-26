@@ -1,0 +1,28 @@
+meta {
+  name: Withdraw - pending inside cutoff
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{apiUrl}}/sessions/{{soonSessionId}}/requests/mine/withdraw
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken2}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.status: eq WITHDRAWN
+}
+
+docs {
+  Control case: a **PENDING** request can be withdrawn at any time, even inside the 6h
+  cutoff -- the host never counted on that slot, so `WithdrawRequestUseCase` only checks
+  the cutoff for `APPROVED` requests. Run before the approve step below so this exercises
+  the plain `PENDING` path on the same soon-starting session.
+}
