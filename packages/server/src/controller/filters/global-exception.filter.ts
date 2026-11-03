@@ -5,6 +5,7 @@ import {
   DomainError,
   ForbiddenError,
   NotFoundError,
+  TooManyRequestsError,
   UnauthorizedError,
   ValidationError,
 } from '../../domain/shared/errors';
@@ -26,6 +27,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = 404;
     } else if (exception instanceof ConflictError) {
       status = 409;
+    } else if (exception instanceof TooManyRequestsError) {
+      status = 429;
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
     } else {

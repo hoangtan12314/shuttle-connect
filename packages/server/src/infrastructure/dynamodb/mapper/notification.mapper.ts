@@ -22,7 +22,7 @@ export class NotificationMapper {
     const createdAtMs = data.createdAt.getTime();
 
     return {
-      PK: `USER#${data.hostId}`,
+      PK: `USER#${data.recipientId}`,
       // Sortable newest-first by construction; the eventId suffix is what makes the item unique
       // and a redelivered stream record idempotent (see NotificationRepositoryDynamoDB.create).
       SK: `NOTIF#${createdAtMs}#${data.id}`,

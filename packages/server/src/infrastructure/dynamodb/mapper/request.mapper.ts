@@ -28,6 +28,15 @@ export interface RequestRecord {
   session_end_time: number;
   court_name: string;
   created_at: number;
+  // Missing on rows written before the anti-churn rate limit shipped -- toResponse treats a
+  // missing value as 1 (as if this were the row's first join).
+  join_count?: number;
+  // Set by withdrawRequest, in both of its shapes. A rejoin's PutCommand rebuilds the whole item
+  // from scratch (same as created_at -- a rejoin is a fresh Request, not a patch of the old one),
+  // so this is actually DROPPED on rejoin, not carried over. Harmless: the next withdraw sets it
+  // fresh again before anything ever reads it, so cooldown correctness never depends on this
+  // surviving a rejoin.
+  withdrawn_at?: number;
 }
 
 export class RequestMapper {
@@ -39,6 +48,7 @@ export class RequestMapper {
       user_id: data.userId,
       status: data.status,
       created_at: data.createdAt.getTime(),
+      join_count: data.joinCount,
     };
   }
 
@@ -77,6 +87,9 @@ export class RequestMapper {
         },
         status: data.status,
         createdAt: data.createdAt.toISOString(),
+        joinCount: data.joinCount,
+        // A freshly-created Request has never been withdrawn.
+        withdrawnAt: null,
       };
     }
 
@@ -102,6 +115,9 @@ export class RequestMapper {
       },
       status: item.status,
       createdAt: new Date(item.created_at).toISOString(),
+      joinCount: item.join_count ?? 1,
+      withdrawnAt:
+        item.withdrawn_at !== undefined ? new Date(item.withdrawn_at).toISOString() : null,
     };
   }
 }

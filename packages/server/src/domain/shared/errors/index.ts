@@ -18,3 +18,6 @@ export * from './request-already-decided.error';
 export * from './request-not-decided.error';
 export * from './request-not-withdrawable.error';
 export * from './withdrawal-window-closed.error';
+export * from './too-many-requests.error';
+export * from './join-limit-reached.error';
+export * from './rejoin-cooldown.error';

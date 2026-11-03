@@ -1,12 +1,16 @@
 import { NotificationType } from '@shuttle-connect/types';
 
 export interface NotificationProps {
-  hostId: string;
+  // Whoever should see this in their bell -- the host for CREATED/WITHDRAWN, the requester for
+  // APPROVED/REJECTED. Named generically since it's no longer always the host.
+  recipientId: string;
   type: NotificationType;
   sessionId: string;
   courtName: string;
   sessionStartTime: Date;
   actorName: string;
+  // Only meaningful for WITHDRAWN (was the withdrawn request APPROVED before it was withdrawn);
+  // false for every other type.
   wasApproved: boolean;
   // The DynamoDB stream record's own eventID -- doubles as this notification's identity, so a
   // redelivered stream record maps to the exact same item instead of a new one.
@@ -19,7 +23,7 @@ export interface NotificationProps {
 export class Notification {
   private constructor(
     public readonly id: string,
-    private hostId: string,
+    private recipientId: string,
     private type: NotificationType,
     private sessionId: string,
     private courtName: string,
@@ -32,7 +36,7 @@ export class Notification {
   static create(props: NotificationProps): Notification {
     return new Notification(
       props.eventId,
-      props.hostId,
+      props.recipientId,
       props.type,
       props.sessionId,
       props.courtName,
@@ -46,7 +50,7 @@ export class Notification {
   toJSON() {
     return {
       id: this.id,
-      hostId: this.hostId,
+      recipientId: this.recipientId,
       type: this.type,
       sessionId: this.sessionId,
       courtName: this.courtName,

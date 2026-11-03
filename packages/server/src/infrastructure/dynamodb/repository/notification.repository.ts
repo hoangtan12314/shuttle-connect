@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  DeleteCommand,
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
@@ -7,7 +8,7 @@ import {
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
-import { NotificationItemResponse } from '@shuttle-connect/types';
+import { NotificationItemResponse, NotificationType } from '@shuttle-connect/types';
 import { Notification, NotificationRepository } from '../../../domain/notification';
 import { EntityNotFoundError } from '../../../domain/shared/errors';
 import { NotificationMapper } from '../mapper';
@@ -39,6 +40,40 @@ export class NotificationRepositoryDynamoDB implements NotificationRepository {
       }
       throw err;
     }
+  }
+
+  // A host's undo deletes the player's earlier decision notice rather than sending a new one.
+  // The partition is small (60-day TTL, at most a few dozen rows), so a filtered Query + per-item
+  // Delete is fine -- no secondary index needed just for this.
+  async deleteDecisionNotifications(userId: string, sessionId: string): Promise<void> {
+    const result = await this.client.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+        FilterExpression: 'session_id = :sessionId AND #type IN (:approved, :rejected)',
+        ExpressionAttributeNames: { '#type': 'type' },
+        ExpressionAttributeValues: {
+          ':pk': `USER#${userId}`,
+          ':skPrefix': 'NOTIF#',
+          ':sessionId': sessionId,
+          ':approved': NotificationType.REQUEST_APPROVED,
+          ':rejected': NotificationType.REQUEST_REJECTED,
+        },
+      }),
+    );
+
+    // Naturally idempotent -- a redelivered undo event finds nothing left to delete the second
+    // time, and DeleteCommand with no ConditionExpression is a no-op on a missing key anyway.
+    await Promise.all(
+      (result.Items ?? []).map((item) =>
+        this.client.send(
+          new DeleteCommand({
+            TableName: this.tableName,
+            Key: { PK: item.PK, SK: item.SK },
+          }),
+        ),
+      ),
+    );
   }
 
   async listForUser(userId: string, limit: number): Promise<NotificationItemResponse[]> {

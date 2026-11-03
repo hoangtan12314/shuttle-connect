@@ -201,12 +201,13 @@ export class RequestRepositoryDynamoDB implements RequestRepository {
           new UpdateCommand({
             TableName: this.tableName,
             Key: { PK: `SESSION#${sessionId}`, SK: `REQUEST#USER#${userId}` },
-            UpdateExpression: 'SET #s = :withdrawn',
+            UpdateExpression: 'SET #s = :withdrawn, withdrawn_at = :now',
             ConditionExpression: '#s = :pending',
             ExpressionAttributeNames: { '#s': 'status' },
             ExpressionAttributeValues: {
               ':withdrawn': RequestStatus.WITHDRAWN,
               ':pending': RequestStatus.PENDING,
+              ':now': Date.now(),
             },
           }),
         );
@@ -228,12 +229,13 @@ export class RequestRepositoryDynamoDB implements RequestRepository {
               Update: {
                 TableName: this.tableName,
                 Key: { PK: `SESSION#${sessionId}`, SK: `REQUEST#USER#${userId}` },
-                UpdateExpression: 'SET #s = :withdrawn',
+                UpdateExpression: 'SET #s = :withdrawn, withdrawn_at = :now',
                 ConditionExpression: '#s = :approved',
                 ExpressionAttributeNames: { '#s': 'status' },
                 ExpressionAttributeValues: {
                   ':withdrawn': RequestStatus.WITHDRAWN,
                   ':approved': RequestStatus.APPROVED,
+                  ':now': Date.now(),
                 },
               },
             },
@@ -342,6 +344,15 @@ export class RequestRepositoryDynamoDB implements RequestRepository {
       ...denormalizeData,
     };
 
+    // The existing row's join_count must equal (this item's new join_count - 1) for the rejoin to
+    // go through -- that's what stops two parallel rejoins both passing Request.assertCanRejoin
+    // (checked against a read taken before either write) from both succeeding here: the loser's
+    // expected count no longer matches what the winner just wrote, and fails this condition.
+    // attribute_not_exists(join_count) covers a row written before this rate limit shipped --
+    // by construction its expected count can only ever be 1 (RequestMapper.toResponse defaults a
+    // missing join_count to 1, which is exactly what the use case read to compute this value).
+    const expectedPreviousJoinCount = item.join_count - 1;
+
     const command = new PutCommand({
       TableName: this.tableName,
       Item: itemToBeSaved,
@@ -350,9 +361,13 @@ export class RequestRepositoryDynamoDB implements RequestRepository {
       // WITHDRAWN existing request). REJECTED is deliberately NOT included: the host said no,
       // and the design only offers "find another session" for that case, not a retry -- so the
       // duplicate guard still blocks it.
-      ConditionExpression: 'attribute_not_exists(PK) OR #s = :withdrawn',
+      ConditionExpression:
+        'attribute_not_exists(PK) OR (#s = :withdrawn AND (join_count = :expectedJoinCount OR attribute_not_exists(join_count)))',
       ExpressionAttributeNames: { '#s': 'status' },
-      ExpressionAttributeValues: { ':withdrawn': RequestStatus.WITHDRAWN },
+      ExpressionAttributeValues: {
+        ':withdrawn': RequestStatus.WITHDRAWN,
+        ':expectedJoinCount': expectedPreviousJoinCount,
+      },
     });
 
     try {
