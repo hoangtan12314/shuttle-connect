@@ -8,7 +8,7 @@ export const table = new sst.aws.Dynamo("shuttle-connect", {
     GSI2SK: "string",
   },
   primaryIndex: { hashKey: "PK", rangeKey: "SK" },
-  // Feeds the request-withdrawn stream subscriber (infra/notification.ts) -- new-and-old-images
+  // Feeds the request-status-changed stream subscriber (infra/notification.ts) -- new-and-old-images
   // so it can tell PENDING/APPROVED -> WITHDRAWN transitions apart from every other write.
   stream: "new-and-old-images",
   // NOTIF# items carry expires_at (epoch seconds); DynamoDB deletes them for free once it's past,

@@ -21,39 +21,50 @@ const streamEsbuildConfig = {
   },
 };
 
-// Notifies the host when a join request is withdrawn, decoupled from WithdrawRequestUseCase --
-// see CLAUDE.md / the plan for why Streams instead of writing the notification inside the
-// withdraw transaction (reliability: a notification failure never rolls back the withdraw).
+// Catches a crashing Lambda after it exhausts maximumRetryAttempts below -- without this, a
+// failing batch is just silently dropped (the 2026-10-25 bug). With every request-lifecycle
+// action now flowing through this one Lambda, a crash would otherwise lose all of them, not
+// just withdrawals. Free at this project's scale (SQS's 1M-requests/month free tier).
+const requestStatusChangedDlq = new sst.aws.Queue("request-status-changed-dlq");
+
+// Notifies the right person about every step of a join request -- the host when someone
+// joins/rejoins or withdraws, the player when the host approves or rejects (host undoing a
+// decision retracts the player's earlier notice instead of sending a new one). Decoupled from
+// the use cases that actually change a request's status -- see CLAUDE.md / the plan for why
+// Streams instead of writing the notification inside those transactions (reliability: a
+// notification failure never rolls back the status change).
 table.subscribe(
-  "request-withdrawn",
+  "request-status-changed",
   {
     handler:
-      "packages/server/src/infrastructure/function/stream/request-withdrawn.handler.handler",
-    link: [table],
+      "packages/server/src/infrastructure/function/stream/request-status-changed.handler.handler",
+    link: [table, requestStatusChangedDlq],
     logging: {
       retention: "1 month",
     },
     nodejs: streamEsbuildConfig,
   },
   {
-    // Evaluated by AWS before the Lambda is invoked -- approvals, rejections and court creations
-    // never cost an invocation. Request items are keyed REQUEST#USER#<id>, so begins_with on SK
-    // is enough to scope this to request rows only.
+    // Evaluated by AWS before the Lambda is invoked -- court creations and session edits never
+    // cost an invocation. One broad filter (an event source mapping allows at most 5, and the
+    // six old->new status transitions this Lambda cares about would already exceed that) --
+    // classifyTransition (infrastructure/function/stream/classify-transition.ts) does the
+    // precise dispatch in code instead. Every INSERT/MODIFY of a request row is some status
+    // change, so this costs nothing extra in practice.
     filters: [
       {
-        dynamodb: {
-          Keys: { SK: { S: [{ prefix: "REQUEST#" }] } },
-          OldImage: { status: { S: ["PENDING", "APPROVED"] } },
-          NewImage: { status: { S: ["WITHDRAWN"] } },
-        },
+        eventName: ["INSERT", "MODIFY"],
+        dynamodb: { Keys: { SK: { S: [{ prefix: "REQUEST#" }] } } },
       },
     ],
     transform: {
-      // Caps retries on a "poison" record instead of letting it block later notifications for
-      // up to 24h -- see the plan's fee-trap note.
       eventSourceMapping: {
+        // Caps retries on a "poison" record instead of letting it block later notifications for
+        // up to 24h -- see the plan's fee-trap note.
         maximumRetryAttempts: 3,
         bisectBatchOnFunctionError: true,
+        // A batch that still fails after all retries lands here instead of being dropped.
+        destinationConfig: { onFailure: { destinationArn: requestStatusChangedDlq.arn } },
       },
     },
   },

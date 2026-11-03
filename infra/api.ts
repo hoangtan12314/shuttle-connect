@@ -5,6 +5,19 @@ export const api = new sst.aws.ApiGatewayV2("shuttle-connect-api", {
     allowMethods: ["*"],
     allowOrigins: ["http://localhost:5173"],
   },
+  transform: {
+    // A global circuit breaker, not per-user fairness (HTTP APIs can't attach WAF directly for
+    // that -- see the plan's "Not doing" section). Shared by every caller, so set generously:
+    // its job is to stop a runaway client/script, not to divide capacity. A plain object here
+    // shallow-merges onto SST's own stage defaults (apiId/autoDeploy/accessLogSettings), so this
+    // only adds defaultRouteSettings without disturbing those.
+    stage: {
+      defaultRouteSettings: {
+        throttlingRateLimit: 50,
+        throttlingBurstLimit: 100,
+      },
+    },
+  },
 });
 
 // Explicit methods (not ANY) on purpose: an ANY/{proxy+} route also matches OPTIONS, which
