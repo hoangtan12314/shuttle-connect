@@ -27,4 +27,10 @@ export interface RequestItemResponse {
   };
   status: RequestStatus;
   createdAt: string;
+  // How many times this user has ever joined this session (withdraw-and-rejoin counts each
+  // time). Lets the UI show "join limit reached" without a failed round-trip.
+  joinCount: number;
+  // Set on withdraw, cleared by nothing -- a fresh rejoin overwrites it on the next withdraw.
+  // null until the first withdraw.
+  withdrawnAt: string | null;
 }
