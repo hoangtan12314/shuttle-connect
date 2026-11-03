@@ -6,6 +6,7 @@ import { queryClient } from '@/shared/api';
 import { CONFIG } from '@/shared/config';
 import { routeTree } from '../routeTree.gen';
 import { Toaster } from '@/shared/ui/sonner';
+import { AuthPromptModal } from './AuthPromptModal';
 
 const router = createRouter({ routeTree });
 
@@ -20,6 +21,9 @@ declare module '@tanstack/react-router' {
     // Part of the sign-in flow itself (/callback, /onboarding): the root layout's onboarding gate
     // must not redirect away from these, or a new user could never finish signing in.
     authFlow?: boolean;
+    // Signed-in-only page (e.g. /activity, /notifications, /sessions/new). The root layout
+    // redirects a signed-out visitor to "/" and opens AuthPromptModal instead of rendering it.
+    requiresAuth?: boolean;
   }
 }
 
@@ -43,6 +47,7 @@ export function AppProviders() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider {...oidcConfig}>
         <Toaster />
+        <AuthPromptModal />
         <RouterProvider router={router} />
       </AuthProvider>
     </QueryClientProvider>

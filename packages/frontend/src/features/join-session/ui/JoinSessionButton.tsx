@@ -12,9 +12,14 @@ import { useT, sessionStatusNames, useLanguageStore } from '@/shared/i18n';
 export function JoinSessionButton({
   session,
   isAuthenticated,
+  disabled: externallyDisabled,
 }: {
   session: SessionOverview;
   isAuthenticated: boolean;
+  // Caller-driven, on top of this button's own disabled logic -- e.g. JoinerSessionView's
+  // rejoin cooldown, which this component has no way to know about on its own (it's never
+  // given the existing request, only the session).
+  disabled?: boolean;
 }) {
   const { mutate, isPending } = useJoinSession();
   const { data: myRequests, isLoading: isMyRequestLoading } =
@@ -28,7 +33,10 @@ export function JoinSessionButton({
     existingRequest?.status === RequestStatus.PENDING;
 
   const disabled =
-    session.status !== SessionStatus.OPEN || isPending || alreadyRequested;
+    session.status !== SessionStatus.OPEN ||
+    isPending ||
+    alreadyRequested ||
+    externallyDisabled;
 
   const label = isPending
     ? t.joiningBtn

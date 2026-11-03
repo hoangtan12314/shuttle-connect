@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useForm, type Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from '@tanstack/react-router';
@@ -23,7 +24,7 @@ import { Button } from '@/shared/ui/button';
 import { useCourts, CourtOption } from '@/entities/court';
 import { useCreateSession } from '../api/use-create-session';
 import {
-  createSessionSchema,
+  makeCreateSessionSchema,
   type CreateSessionFormValues,
 } from '../model/schema';
 import {
@@ -94,9 +95,11 @@ export function CreateSessionForm() {
   const navigate = useNavigate();
   const { mutate, isPending } = useCreateSession();
 
+  const schema = useMemo(() => makeCreateSessionSchema(t), [t]);
+
   const defaultStart = nextFullHour();
   const form = useForm<CreateSessionFormValues>({
-    resolver: zodResolver(createSessionSchema),
+    resolver: zodResolver(schema),
     // useForm reads defaultValues only on the first render, so recomputing defaultStart on later
     // renders is harmless.
     defaultValues: {

@@ -3,4 +3,5 @@ import { CreateSessionPage } from '@/pages/create-session';
 
 export const Route = createFileRoute('/sessions/new')({
   component: CreateSessionPage,
+  staticData: { requiresAuth: true },
 });

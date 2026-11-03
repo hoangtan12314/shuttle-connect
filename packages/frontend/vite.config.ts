@@ -26,8 +26,17 @@ export default defineConfig({
   // @shuttle-connect/types is a symlinked workspace package shipping CommonJS (required by
   // server/esbuild, see CLAUDE.md). Vite skips its usual CJS->ESM pre-bundling for symlinked
   // deps by default, so force it through here -- otherwise named imports fail at runtime.
+  //
+  // `force: true` re-runs that pre-bundling on every dev server start, instead of trusting
+  // Vite's on-disk cache (node_modules/.vite/deps). Vite's cache-invalidation heuristics don't
+  // reliably notice when this *local* package's dist/ output changes underneath it (no lockfile
+  // or package.json version bump happens on a workspace rebuild), so without this the cache goes
+  // stale every time packages/types changes -- "does not provide an export named 'X'" for an
+  // export that genuinely exists in the rebuilt dist/. The cost is a slightly slower dev-server
+  // cold start every time, in exchange for never hitting that error again.
   optimizeDeps: {
     include: ['@shuttle-connect/types'],
+    force: true,
   },
   test: {
     environment: 'jsdom',

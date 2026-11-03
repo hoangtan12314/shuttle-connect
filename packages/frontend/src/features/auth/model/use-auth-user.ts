@@ -1,5 +1,6 @@
 import { useAuth } from 'react-oidc-context';
 import { CONFIG } from '@/shared/config';
+import { useAuthPromptStore } from '@/shared/lib';
 
 export function useAuthUser() {
   const auth = useAuth();
@@ -7,9 +8,21 @@ export function useAuthUser() {
   const signIn = () => auth.signinRedirect();
 
   const signOut = async () => {
-    await auth.removeUser(); // clears react-oidc-context's own stored session
-    const logoutUrl = `${CONFIG.cognitoDomain}/logout?client_id=${CONFIG.cognitoClientId}&logout_uri=${encodeURIComponent(window.location.origin)}`;
-    window.location.href = logoutUrl;
+    // Set synchronously, before anything async -- see auth-prompt-store.ts's comment on
+    // isSigningOut for why: removeUser() flips isAuthenticated to false, which the root
+    // layout's requiresAuth gate would otherwise treat as "needs the sign-in prompt," right as
+    // we're intentionally leaving the app anyway.
+    useAuthPromptStore.getState().startSigningOut();
+    try {
+      await auth.removeUser(); // clears react-oidc-context's own stored session
+      const logoutUrl = `${CONFIG.cognitoDomain}/logout?client_id=${CONFIG.cognitoClientId}&logout_uri=${encodeURIComponent(window.location.origin)}`;
+      window.location.href = logoutUrl;
+    } catch (err) {
+      // The redirect never happened -- don't leave the app permanently convinced a sign-out is
+      // still in progress.
+      useAuthPromptStore.getState().stopSigningOut();
+      throw err;
+    }
   };
 
   return {

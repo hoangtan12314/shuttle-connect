@@ -8,10 +8,16 @@ import { Link } from '@tanstack/react-router';
 import { Ban, Check, Clock, Lock, Users, X } from 'lucide-react';
 import { useMyRequests } from '@/entities/request';
 import { SessionCard } from '@/entities/session';
-import { JoinSessionButton } from '@/features/join-session';
+import {
+  hasReachedJoinLimit,
+  isWithinRejoinCooldown,
+  JoinSessionButton,
+  remainingCooldownMinutes,
+} from '@/features/join-session';
 import {
   isWithinWithdrawCutoff,
   useWithdrawRequest,
+  WithdrawConfirmDialog,
 } from '@/features/withdraw-request';
 import { useSessionFilters } from '@/features/filter-sessions';
 import { Button } from '@/shared/ui/button';
@@ -40,6 +46,21 @@ export function JoinerSessionView({
   // otherwise disagree right at the 6h boundary (button enabled while the note still shows, or
   // vice versa) for that one render.
   const isPastCutoff = isWithinWithdrawCutoff(session.startTime);
+
+  // Anti-churn display state, display-only like isPastCutoff above -- only ever relevant for a
+  // WITHDRAWN existing request (a brand-new joiner has no join_count/withdrawn_at to check).
+  // The cap is checked first: it's permanent for this session, unlike the cooldown, which
+  // resolves itself as time passes.
+  const withdrawnAt =
+    existingRequest?.status === RequestStatus.WITHDRAWN
+      ? existingRequest.withdrawnAt
+      : null;
+  const isCapped =
+    existingRequest?.status === RequestStatus.WITHDRAWN &&
+    hasReachedJoinLimit(existingRequest.joinCount);
+  const isCoolingDown = !isCapped && isWithinRejoinCooldown(withdrawnAt);
+  const cooldownMinutes =
+    isCoolingDown && withdrawnAt ? remainingCooldownMinutes(withdrawnAt) : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -70,13 +91,12 @@ export function JoinerSessionView({
             tone="primary"
           >
             <div className="flex flex-col items-center gap-2">
-              <Button
-                variant="outline"
-                disabled={isWithdrawing || isPastCutoff}
-                onClick={() => withdraw(session.id)}
-              >
-                {t.withdrawBtn}
-              </Button>
+              <WithdrawConfirmDialog
+                joinCount={existingRequest.joinCount}
+                disabled={isPastCutoff}
+                isWithdrawing={isWithdrawing}
+                onConfirm={() => withdraw(session.id)}
+              />
               {isPastCutoff && (
                 <p className="text-muted-foreground max-w-sm text-center text-xs">
                   {t.withdrawClosedNote}
@@ -89,13 +109,11 @@ export function JoinerSessionView({
       {session.status !== SessionStatus.CANCELLED &&
         existingRequest?.status === RequestStatus.PENDING && (
           <StatusCallout icon={Clock} title={t.pendingT} body={t.pendingB}>
-            <Button
-              variant="outline"
-              disabled={isWithdrawing}
-              onClick={() => withdraw(session.id)}
-            >
-              {t.withdrawBtn}
-            </Button>
+            <WithdrawConfirmDialog
+              joinCount={existingRequest.joinCount}
+              isWithdrawing={isWithdrawing}
+              onConfirm={() => withdraw(session.id)}
+            />
           </StatusCallout>
         )}
 
@@ -150,14 +168,21 @@ export function JoinerSessionView({
         isFreeToJoin &&
         (myLevel === undefined || myLevel >= session.minSkillLevel) && (
           <div className="flex flex-col items-center gap-2">
-            <JoinSessionButton
-              session={session}
-              isAuthenticated={isAuthenticated}
-            />
+            {!isCapped && (
+              <JoinSessionButton
+                session={session}
+                isAuthenticated={isAuthenticated}
+                disabled={isCoolingDown}
+              />
+            )}
             <p className="text-muted-foreground text-center text-xs">
-              {existingRequest?.status === RequestStatus.WITHDRAWN
-                ? t.withdrawnNoteT
-                : t.joinNote}
+              {isCapped
+                ? t.joinLimitReachedNote
+                : cooldownMinutes !== null
+                  ? `${t.rejoinCooldownNote} ${cooldownMinutes} ${t.minUnit}`
+                  : existingRequest?.status === RequestStatus.WITHDRAWN
+                    ? t.withdrawnNoteT
+                    : t.joinNote}
             </p>
           </div>
         )}

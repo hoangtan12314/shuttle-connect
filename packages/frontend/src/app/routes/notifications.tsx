@@ -3,4 +3,5 @@ import { NotificationsPage } from '@/pages/notifications';
 
 export const Route = createFileRoute('/notifications')({
   component: NotificationsPage,
+  staticData: { requiresAuth: true },
 });

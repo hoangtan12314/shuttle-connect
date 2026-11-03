@@ -4,6 +4,7 @@ import { createFileRoute } from '@tanstack/react-router';
 // (see /Users/admin/.claude/plans/warm-scribbling-parnas.md).
 export const Route = createFileRoute('/activity')({
   component: ActivityPage,
+  staticData: { requiresAuth: true },
 });
 
 function ActivityPage() {

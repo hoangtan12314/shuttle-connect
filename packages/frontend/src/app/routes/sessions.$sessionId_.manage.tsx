@@ -3,4 +3,5 @@ import { ManageSessionPage } from '@/pages/manage-session';
 
 export const Route = createFileRoute('/sessions/$sessionId_/manage')({
   component: ManageSessionPage,
+  staticData: { requiresAuth: true },
 });

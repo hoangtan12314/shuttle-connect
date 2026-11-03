@@ -1,4 +1,5 @@
 import {
+  ErrorCode,
   type ApiErrorResponse,
   type ApiResponse,
 } from '@shuttle-connect/types';
@@ -32,6 +33,15 @@ function getIdToken(): string | undefined {
   }
 }
 
+// GlobalExceptionFilter wraps every response our own server sends, but API Gateway's own errors
+// (its stage-level throttle -- see infra/api.ts's defaultRouteSettings -- plus 503s/timeouts)
+// never reach that filter at all: they come back as a bare `{ "message": "..." }`, or nothing
+// parseable. Narrows to the real envelope so apiRequest doesn't crash on `body.error` being
+// undefined for one of these.
+function isApiResponse(body: unknown): body is ApiResponse<unknown> {
+  return typeof body === 'object' && body !== null && 'success' in body;
+}
+
 export async function apiRequest<T>(
   path: string,
   init?: RequestInit,
@@ -45,7 +55,31 @@ export async function apiRequest<T>(
       ...init?.headers,
     },
   });
-  const body = (await response.json()) as ApiResponse<T>;
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    body = undefined;
+  }
+
+  if (!isApiResponse(body)) {
+    const rawMessage =
+      body &&
+      typeof body === 'object' &&
+      'message' in body &&
+      typeof body.message === 'string'
+        ? body.message
+        : undefined;
+    throw new ApiError({
+      code:
+        response.status === 429
+          ? ErrorCode.RATE_LIMITED
+          : ErrorCode.SERVER_ERROR,
+      statusCode: response.status,
+      message: rawMessage ?? `Request failed with status ${response.status}`,
+    });
+  }
 
   if (!body.success) {
     // TODO: Check unauthorized code
@@ -54,5 +88,5 @@ export async function apiRequest<T>(
     throw new ApiError(body.error);
   }
 
-  return body.data;
+  return body.data as T;
 }
