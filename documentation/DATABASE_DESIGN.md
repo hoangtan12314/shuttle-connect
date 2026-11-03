@@ -11,9 +11,9 @@ Single-table design for the Shuttle Connect badminton session-booking app. One p
 | Court | `COURT#<courtId>` | `META` |
 | User | `USER#<userId>` | `META` |
 | Auth pointer (Cognito `sub` → internal user id) | `AUTH#<cognitoSub>` | `META` |
-| Notification (a host's copy of an event) | `USER#<hostId>` | `NOTIF#<epochMs>#<eventId>` |
+| Notification (a recipient's copy of a request-lifecycle event) | `USER#<recipientId>` | `NOTIF#<epochMs>#<eventId>` |
 
-Session and Request items share the same PK so a single `Query` on the base table returns a session together with every request against it (an "item collection"). The Auth pointer is a separate item from the User it resolves to — see `documentation` / `CLAUDE.md`'s "Auth" section for why identity is two ids, not one. Notification items share the host's User PK for the same reason — one `Query` on `PK = USER#<hostId>, begins_with(SK, "NOTIF#")` lists them (see §5), no separate index.
+Session and Request items share the same PK so a single `Query` on the base table returns a session together with every request against it (an "item collection"). The Auth pointer is a separate item from the User it resolves to — see `documentation` / `CLAUDE.md`'s "Auth" section for why identity is two ids, not one. Notification items share their recipient's User PK for the same reason — one `Query` on `PK = USER#<recipientId>, begins_with(SK, "NOTIF#")` lists them (see §5), no separate index. The recipient is whoever the event is *for* (host or player, depending on event type), not always the host.
 
 **Place format — `location` is the only persisted place attribute.** Every place-bearing item (Court, Session, Request) stores exactly one field:
 
@@ -39,7 +39,7 @@ Every GSI key is a dedicated attribute (`GSI1PK`, `GSI1SK`, `GSI2PK`, `GSI2SK`) 
 | 2 | Browse sessions by city + district, sorted by start time | Medium-high | GSI1 |
 | 3 | List courts by city + district | Medium | GSI1 |
 | 4 | Get sessions a user hosts or has requested to join | Medium | GSI2 |
-| 5 | List a host's withdrawal notifications, newest first | Low | Main table |
+| 5 | List a user's request-lifecycle notifications, newest first | Low | Main table |
 
 Access patterns #2–#4 are index-ready today (every write populates the right keys), but no
 query/endpoint consumes #2–#4 yet — `GET /sessions` is still `SessionRepositoryDynamoDB.listAll()`
@@ -141,19 +141,25 @@ discards non-matches afterward.
 
 ---
 
-## 5. Host withdrawal notifications (Main table)
+## 5. Request-lifecycle notifications (Main table)
 
-**Why:** a host needs to know promptly when someone withdraws from their session (they may have
-already paid for the court). Written by a DynamoDB Streams-triggered Lambda
-(`request-withdrawn`, `infra/notification.ts`), not inside `WithdrawRequestUseCase` itself —
-decoupling the notification from the withdraw transaction means a notification failure can never
-roll back, or even delay, the withdraw. See `CLAUDE.md`'s late-withdrawal-protection section for
-the full rationale.
+**Why:** both sides of a join request need to know promptly when its status changes — the host
+when someone joins/rejoins or withdraws (they may have already paid for the court), the player
+when the host approves or rejects. Written by a DynamoDB Streams-triggered Lambda
+(`request-status-changed`, `infra/notification.ts`), not inside the use cases that actually
+change a request's status — decoupling the notification from that write means a notification
+failure can never roll back, or even delay, the status change itself. See `CLAUDE.md`'s
+late-withdrawal-protection section for the full rationale.
 
 ```
-PK = "USER#<hostId>"
+PK = "USER#<recipientId>"
 SK = "NOTIF#<epochMs>#<eventId>"
 ```
+
+`recipientId` is whoever should see this notification — the host for `REQUEST_CREATED`/
+`REQUEST_WITHDRAWN`, the requesting player for `REQUEST_APPROVED`/`REQUEST_REJECTED` — not
+always the host, despite the item still living in that person's own `USER#<id>` partition
+(the same item collection their profile `META` row is in).
 
 ```
 Query:
@@ -163,14 +169,24 @@ Query:
   Limit: 30
 ```
 
-Each item carries `type` (`NotificationType`, currently only `REQUEST_WITHDRAWN`),
-`session_id`/`court_name`/`session_start_time` (copied from the request item's own
-denormalized fields — no extra read), `actor_name` (the withdrawing player), `was_approved`
-(from the stream record's old image), `created_at`, and `expires_at`.
+Each item carries `type` (`NotificationType`: `REQUEST_CREATED`, `REQUEST_APPROVED`,
+`REQUEST_REJECTED`, `REQUEST_WITHDRAWN`), `session_id`/`court_name`/`session_start_time` (copied
+from the request item's own denormalized fields — no extra read), `actor_name` (whoever
+performed the action: the player for `CREATED`/`WITHDRAWN`, the host for `APPROVED`/`REJECTED`),
+`was_approved` (only meaningful for `WITHDRAWN`; the stream record's old image), `created_at`,
+and `expires_at`.
+
+**Delete-on-undo, not a second notification.** When a host undoes an `APPROVED`/`REJECTED`
+decision back to `PENDING`, the player's earlier decision notice for that session is **deleted**
+(`DeleteCommand` after a `Query` filtered on `session_id` and `type`) rather than a new "pending
+again" notification being sent — the list always matches the request's current state. A small
+partition (60-day TTL, at most a few dozen rows), so a filtered `Query` + per-item delete is fine
+without a secondary index.
 
 **Idempotency.** The stream can redeliver a record. The SK's `eventId` suffix is the stream
-record's own `eventID`, and the write uses `ConditionExpression: attribute_not_exists(SK)` — a
-redelivery just fails that condition and is swallowed, so the host never sees a duplicate.
+record's own `eventID`, and a create write uses `ConditionExpression: attribute_not_exists(SK)` —
+a redelivery just fails that condition and is swallowed. A redelivered *delete* (undo) is
+naturally idempotent the other way: the second attempt just finds nothing left to delete.
 
 **Read watermark, not per-item read flags.** The `USER#<id>/META` item (the same item `findById`
 already reads) gains one optional attribute, `notifications_read_at` (epoch ms). A notification is
@@ -181,12 +197,38 @@ is one `UpdateCommand` on `META`, not one write per notification.
 TTL attribute (`infra/database.ts`) — DynamoDB deletes expired rows for free, so this list doesn't
 grow forever.
 
-**Event filtering.** The Lambda's event source mapping filters on `SK` beginning with `REQUEST#`
-and the old/new image's `status` transitioning `PENDING`/`APPROVED` → `WITHDRAWN`, evaluated by
-AWS *before* the Lambda runs — approvals, rejections, and court creations never cost an
-invocation. This is a second, independent Streams consumer from the denormalization fan-out
-below — different filter, different Lambda, implemented now where the fan-out below is still
-design intent.
+**Event filtering.** One broad filter — `SK` beginning with `REQUEST#`, `eventName` in
+`INSERT`/`MODIFY` — evaluated by AWS *before* the Lambda runs, so court creations and session
+edits never cost an invocation. `classifyTransition`
+(`infrastructure/function/stream/classify-transition.ts`) does the precise old-status/new-status
+dispatch in code instead, since the six transitions this Lambda cares about would already exceed
+an event source mapping's 5-filter limit. This is a second, independent Streams consumer from the
+denormalization fan-out below — different filter, different Lambda, implemented now where the
+fan-out below is still design intent.
+
+**Failure handling.** The event source mapping's `destinationConfig.onFailure` routes a batch
+that exhausts `maximumRetryAttempts` (3) to an SQS dead-letter queue instead of silently dropping
+it — without this, a crashing Lambda loses the records for good, which is exactly what happened
+(and went unnoticed) before this was added.
+
+## Request anti-churn attributes (Main table)
+
+The Request item (§1) gains two attributes to support the join/withdraw rate limit:
+
+- `join_count` (number) — how many times this `(session, user)` pair has ever joined, including
+  the current join. Set to 1 on a brand-new request, incremented on every rejoin. Rows written
+  before this shipped lack it entirely; the mapper treats a missing value as `1`.
+- `withdrawn_at` (epoch ms, optional) — set by `withdrawRequest` on every withdraw, in both of its
+  shapes (plain flip and the slot-giveback transaction). Never cleared by a rejoin; a later
+  withdraw just overwrites it.
+
+`Request.assertCanRejoin` (domain layer, pure) checks both before a `WITHDRAWN` request's row can
+be overwritten by a fresh join: the cap (`join_count >= MAX_JOINS_PER_SESSION`, a permanent block
+for this session) and the cooldown (less than `REJOIN_COOLDOWN_MINUTES` since `withdrawn_at`, a
+temporary one). The repository's own `create()` condition independently re-checks `join_count`
+against the value the use case read before writing — the same "two parallel writes, only one can
+win" pattern `approveRequest`'s slot-count condition already uses — so two racing rejoins can't
+both slip past the cap.
 
 ---
 

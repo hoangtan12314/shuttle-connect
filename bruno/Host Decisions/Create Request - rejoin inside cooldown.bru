@@ -1,0 +1,43 @@
+meta {
+  name: Create Request - rejoin inside cooldown
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{apiUrl}}/requests
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken2}}
+}
+
+body:json {
+  {
+    "sessionId": "{{sessionId}}"
+  }
+}
+
+assert {
+  res.status: eq 429
+  res.body.success: eq false
+  res.body.error.code: eq REJOIN_COOLDOWN
+}
+
+docs {
+  Depends on **Withdraw Request - approved** having just run (seconds ago, well inside
+  `REJOIN_COOLDOWN_MINUTES`). `Request.assertCanRejoin` blocks this with
+  `RejoinCooldownError` (429) before `create()`'s repository-level duplicate check is ever
+  reached -- the request item's `PK`/`SK` are the same `(session, user)` pair as before,
+  which `create()`'s `ConditionExpression` would otherwise allow overwriting (a `WITHDRAWN`
+  row can always be overwritten by a fresh join -- see **Requests / Create Request -
+  duplicate** for the case that's still blocked, a non-`WITHDRAWN` retry).
+
+  Before the anti-churn rate limit, this rejoined immediately (201 `PENDING`) -- this test
+  used to be **Create Request - rejoin after withdraw**. See
+  `drifting-doodling-rocket.md`'s unit tests (`Request.assertCanRejoin`'s jest spec) for the
+  cooldown-boundary and join-cap cases this folder can't exercise without a 10+/20+ minute
+  real wait.
+}

@@ -1,0 +1,58 @@
+meta {
+  name: List (host) - after lifecycle events
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{apiUrl}}/users/me/notifications
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  // The DynamoDB Streams -> Lambda -> notification write is asynchronous (eventual
+  // consistency, by design -- see infra/notification.ts's docs). By the time this folder runs,
+  // Host Decisions and Withdraw Cutoff have already triggered a handful of lifecycle events;
+  // this just gives the stream a moment to catch up before asserting on the result.
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+}
+
+tests {
+  test("the host has a REQUEST_CREATED notification for the shared session", function () {
+    const items = res.getBody().data.items;
+    const created = items.find(
+      (item) => item.sessionId === bru.getEnvVar("sessionId") && item.type === "REQUEST_CREATED",
+    );
+    expect(created).to.exist;
+    expect(created.actorName).to.be.a("string").that.is.not.empty;
+  });
+
+  test("the host has a REQUEST_WITHDRAWN notification for the shared session", function () {
+    const items = res.getBody().data.items;
+    const withdrawn = items.find(
+      (item) => item.sessionId === bru.getEnvVar("sessionId") && item.type === "REQUEST_WITHDRAWN",
+    );
+    expect(withdrawn).to.exist;
+    expect(withdrawn.wasApproved).to.equal(true);
+  });
+}
+
+docs {
+  Runs as the **host** (`auth: inherit`). Filters by `sessionId` rather than asserting on
+  `items[0]` -- **Withdraw Cutoff** also generates notifications (on its own soon-starting
+  sessions), interleaved with this one, so "newest item" isn't reliably about
+  `{{sessionId}}` by the time this runs.
+
+  - `REQUEST_CREATED`: from the original join (**Requests / Create Request**, run long
+    before this folder) -- an `INSERT` with no old status is exactly `classifyTransition`'s
+    "someone wants in" case. Never retracted -- only `APPROVED`/`REJECTED` notices get
+    deleted on undo.
+  - `REQUEST_WITHDRAWN`, `wasApproved: true`: from **Host Decisions / Withdraw Request -
+    approved**.
+}

@@ -1,7 +1,7 @@
 meta {
   name: Approve Request (for withdraw test)
   type: http
-  seq: 16
+  seq: 13
 }
 
 patch {
@@ -23,9 +23,9 @@ assert {
 }
 
 docs {
-  Depends on **Create Request - rejoin after withdraw**. Re-approves the rejoined request
-  (run as the host, like **Approve Request**) purely to set up **Withdraw Request -
+  Depends on **Undo Rejection** having put the shared request back to `PENDING`. Re-approves
+  it (run as the host, like **Approve Request**) purely to set up **Withdraw Request -
   approved** below -- needs an `APPROVED` request to withdraw from, to exercise the
-  slot-giveback transaction path, not just the plain-flip path **Withdraw Request** above
-  already covers.
+  slot-giveback transaction path, which the plain `PENDING` withdraw case (now covered by
+  **Withdraw Cutoff**'s control case instead of here -- see that folder) doesn't exercise.
 }

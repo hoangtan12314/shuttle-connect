@@ -1,0 +1,53 @@
+meta {
+  name: Create Session - starts soon (session B)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{apiUrl}}/sessions
+  body: json
+  auth: inherit
+}
+
+script:pre-request {
+  const start = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2h from now -- inside the 6h cutoff
+  const end = new Date(start.getTime() + 1 * 60 * 60 * 1000); // +1h
+  bru.setVar("soonStartTime2", start.toISOString());
+  bru.setVar("soonEndTime2", end.toISOString());
+}
+
+body:json {
+  {
+    "courtId": "{{courtId}}",
+    "startTime": "{{soonStartTime2}}",
+    "endTime": "{{soonEndTime2}}",
+    "slotsRemaining": 8,
+    "slotsTotal": 8,
+    "priceMale": 60000,
+    "priceFemale": 40000,
+    "shuttleType": "YONEX_AS30",
+    "minSkillLevel": 3,
+    "description": "Starts soon -- withdraw cutoff test (session B)"
+  }
+}
+
+script:post-response {
+  const data = res.getBody() && res.getBody().data;
+  if (data && data.id) {
+    bru.setEnvVar("soonSessionId2", data.id);
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  A second soon-starting session, separate from **Create Session - starts soon**'s
+  `{{soonSessionId}}`. Needed because the 10-minute rejoin cooldown (added alongside the
+  withdraw cutoff -- see `drifting-doodling-rocket.md`) means this folder can no longer
+  withdraw and immediately rejoin the *same* session like it used to. This session only
+  ever goes PENDING -> APPROVED -> withdraw-blocked-by-cutoff, never withdrawn, so the
+  cooldown never comes up here.
+}

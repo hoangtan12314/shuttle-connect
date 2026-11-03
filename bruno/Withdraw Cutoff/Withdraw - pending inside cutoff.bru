@@ -23,6 +23,11 @@ assert {
 docs {
   Control case: a **PENDING** request can be withdrawn at any time, even inside the 6h
   cutoff -- the host never counted on that slot, so `WithdrawRequestUseCase` only checks
-  the cutoff for `APPROVED` requests. Run before the approve step below so this exercises
-  the plain `PENDING` path on the same soon-starting session.
+  the cutoff for `APPROVED` requests.
+
+  Runs on its own soon-starting session (`{{soonSessionId}}`), separate from
+  **Withdraw - inside cutoff**'s session (`{{soonSessionId2}}`) below -- a withdraw here
+  starts the 10-minute rejoin cooldown on this session, and nothing in this folder ever
+  needs to rejoin it, so that's fine. Keeping the APPROVED-inside-cutoff case on its own
+  session avoids depending on a rejoin that the cooldown would now block.
 }

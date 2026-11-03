@@ -32,10 +32,10 @@ docs {
   (`SESSION#<id>` / `REQUEST#USER#<playerId>`), so this must use `{{idToken2}}`, not the
   host's token.
 
-  `request.repository.ts`'s `create()` catches `ConditionalCheckFailedException` from the
-  `attribute_not_exists(PK) OR #s = :withdrawn` write and throws `DuplicateRequestError` ->
-  409. The `OR` half is Phase 3.5: a `WITHDRAWN` request's item can be overwritten by a
-  fresh join (see **Host Decisions / Create Request - rejoin after withdraw**), so this
-  test specifically needs the request to still be *live* (`PENDING` here) for the
-  duplicate guard to actually fire.
+  `request.repository.ts`'s `create()` catches `ConditionalCheckFailedException` from its
+  condition expression and throws `DuplicateRequestError` -> 409. That condition's `OR`
+  half lets a `WITHDRAWN` request's item be overwritten by a fresh join (see **Host
+  Decisions / Create Request - rejoin inside cooldown** for the rate-limit check that now
+  also guards that path), so this test specifically needs the request to still be *live*
+  (`PENDING` here) for the duplicate guard to actually fire.
 }

@@ -1,7 +1,7 @@
 meta {
   name: Withdraw Request - approved
   type: http
-  seq: 17
+  seq: 14
 }
 
 patch {
@@ -21,8 +21,11 @@ assert {
 }
 
 docs {
-  Depends on **Approve Request (for withdraw test)**. This time `wasApproved: true`, so
+  Depends on **Approve Request (for withdraw test)**. `wasApproved: true`, so
   `withdrawRequest` takes `revertApproval`'s shape -- gives the slot back and flips
   `FULL -> OPEN` if needed -- but lands the request on `WITHDRAWN` instead of `PENDING`.
-  **Get Session After Withdraw** below checks the slot actually came back.
+  **Get Session After Withdraw** below checks the slot actually came back. This session's
+  start time is "tomorrow" (**Sessions / Create Session**), well outside the 6h cutoff, so
+  this isn't blocked by `WithdrawalWindowClosedError` -- see **Withdraw Cutoff** for that
+  check.
 }

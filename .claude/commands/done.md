@@ -80,6 +80,10 @@ on (fix, defer to tech debt, or dismiss). Do not commit until they've done this 
 
 ## 5. Commit
 
+Record `git rev-parse HEAD` **before** staging anything in this step — call it `$PRE_COMMIT_SHA`.
+Needed by the `explain-diff` report below, since `git diff` against the working tree shows
+nothing once everything is committed.
+
 Once the user gives the go-ahead:
 - Stage and commit by **commitlint scope** (`frontend`, `server`, `types`, `infra`, `root` — see
   `commitlint.config.js`), one commit per scope actually touched in this step. Never bundle two
@@ -102,5 +106,15 @@ running if the user started it themselves; only stop processes this session laun
 
 ## Report back
 
-Summarize: what was checked, what the review found, what got committed (with hashes), and what's
-next per the handoff doc.
+Before summarizing, produce the `explain-diff` command's report (same structure: Problem/Context,
+Root cause for fixes, file-by-file diffs with an **Intention:** explanation each, Net effect).
+Scope it to `git diff $PRE_COMMIT_SHA..HEAD` (the SHA recorded at the top of step 5) — never plain
+`git diff`, which shows nothing once step 5 has committed everything. This is what "whenever a
+step is implemented, automatically add them to the end before you finish" (2026-10-29) means in
+practice: every `/done` run ends with this report, not just a terse summary.
+
+If step 5 made multiple commits (one per scope), the report still covers the combined diff across
+all of them — don't produce one report per commit.
+
+After the report, add the terse summary: what was checked, what the review found, what got
+committed (with hashes), and what's next per the handoff doc.

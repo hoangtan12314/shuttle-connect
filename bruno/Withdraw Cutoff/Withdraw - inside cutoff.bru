@@ -1,11 +1,11 @@
 meta {
   name: Withdraw - inside cutoff
   type: http
-  seq: 6
+  seq: 7
 }
 
 patch {
-  url: {{apiUrl}}/sessions/{{soonSessionId}}/requests/mine/withdraw
+  url: {{apiUrl}}/sessions/{{soonSessionId2}}/requests/mine/withdraw
   body: none
   auth: bearer
 }
@@ -21,8 +21,10 @@ assert {
 }
 
 docs {
-  The player's request is `APPROVED` (see **Approve Soon Request**) on a session starting
-  only 2h from now, inside `WITHDRAW_CUTOFF_HOURS` (6h). `WithdrawRequestUseCase` now
-  blocks this with `WithdrawalWindowClosedError` (409) instead of letting an approved
-  slot get released this close to start, when the host likely can't refund or replace it.
+  The player's request is `APPROVED` (see **Approve Soon Request**) on session B,
+  starting only 2h from now, inside `WITHDRAW_CUTOFF_HOURS` (6h).
+  `WithdrawRequestUseCase` blocks this with `WithdrawalWindowClosedError` (409) instead of
+  letting an approved slot get released this close to start, when the host likely can't
+  refund or replace it. This attempt fails, so it never starts a rejoin cooldown on this
+  session either.
 }

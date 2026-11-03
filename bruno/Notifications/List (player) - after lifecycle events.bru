@@ -1,0 +1,56 @@
+meta {
+  name: List (player) - after lifecycle events
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{apiUrl}}/users/me/notifications
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken2}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+}
+
+tests {
+  test("no REQUEST_REJECTED notification survives for the shared session (the undo deleted it)", function () {
+    const items = res.getBody().data.items;
+    const rejected = items.find(
+      (item) => item.sessionId === bru.getEnvVar("sessionId") && item.type === "REQUEST_REJECTED",
+    );
+    expect(rejected).to.be.undefined;
+  });
+
+  test("exactly one REQUEST_APPROVED notification survives for the shared session", function () {
+    const items = res.getBody().data.items;
+    const approved = items.filter(
+      (item) => item.sessionId === bru.getEnvVar("sessionId") && item.type === "REQUEST_APPROVED",
+    );
+    expect(approved).to.have.lengthOf(1);
+  });
+}
+
+docs {
+  Runs as the **player** (`{{idToken2}}`). Traces through **Host Decisions**' full
+  sequence on the shared session:
+
+  1. **Approve Request** -> `REQUEST_APPROVED` #1 created.
+  2. **Undo Approval** -> retracted (deletes #1).
+  3. **Reject Request** -> `REQUEST_REJECTED` created.
+  4. **Undo Rejection** -> retracted (deletes it).
+  5. **Approve Request (for withdraw test)** -> `REQUEST_APPROVED` #2 created.
+  6. **Withdraw Request - approved** -> withdraws the request (notifies the *host*, not the
+     player -- doesn't touch the player's own notifications).
+
+  So the player ends up with zero `REQUEST_REJECTED` notices for this session (created
+  then deleted) and exactly one `REQUEST_APPROVED` notice (the *second* approval's --
+  the first one's notice was deleted by the undo in step 2, per the delete-on-undo design
+  decision).
+}

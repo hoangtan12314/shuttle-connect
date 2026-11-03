@@ -107,16 +107,18 @@ Courts          ->  Create Court               sets {{courtId}}
 Sessions        ->  Create Session             needs {{courtId}}; sets {{sessionId}}, {{userId}}
 Requests        ->  Create Request (player)    needs {{sessionId}}; sets {{playerId}}
 Host Decisions  ->  Approve -> Undo Approval -> Reject -> Undo Rejection (host),
-                    with a not-host/still-pending negative case after each undo,
-                    then Withdraw (player, from PENDING) -> rejoin -> Approve -> Withdraw
-                    (from APPROVED, checks the slot is given back) -- see below
+                    with a not-host/still-pending negative case after each undo, then
+                    Approve again -> Withdraw (from APPROVED, checks the slot is given
+                    back) -> Withdraw again (409) -> rejoin (429, cooldown) -- see below
 User            ->  Get Profile -> Update Profile -> Complete Onboarding
                     (missing level -> 400 first, then the happy path)   the host's own profile
-Withdraw Cutoff ->  its own soon-starting session/request (own env vars, doesn't touch
-                    {{sessionId}}/{{playerId}}): PENDING withdraw inside the cutoff still
-                    succeeds, then an APPROVED withdraw inside the cutoff 409s
-Notifications   ->  List (host, after a ~3s stream delay) -> Mark read -> List again
-                    (confirms lastReadAt persists)
+Withdraw Cutoff ->  two of its own soon-starting sessions (own env vars, doesn't touch
+                    {{sessionId}}/{{playerId}}): session A's PENDING withdraw inside the
+                    cutoff still succeeds; session B's APPROVED withdraw inside the
+                    cutoff 409s -- two sessions, not one, so neither needs a rejoin the
+                    10-minute cooldown would otherwise block
+Notifications   ->  List (host) and List (player), after a ~3s stream delay, then
+                    Mark read -> List again (confirms lastReadAt persists)
 ```
 
 **Complete Onboarding marks the *host* test account as onboarded** (with the same name/level
@@ -130,33 +132,41 @@ is given back) -> `REJECTED` (**Reject Request**) -> back to `PENDING` (**Undo R
 **Undo Decision - not host** and **Undo Decision - still pending** are negative cases
 slotted into that chain, not separate setup.
 
-The same folder then continues into Phase 3.5 (withdraw), still against the same shared
-`{{sessionId}}`/`{{playerId}}`: **Withdraw Request** (run as the *player*,
-`{{idToken2}}` -- self-service, no `:userId` in the route) takes the `PENDING` request to
-`WITHDRAWN`; **Withdraw Request - not withdrawable** checks withdrawing it again 409s;
-**Create Request - rejoin after withdraw** proves the `WITHDRAWN` request's item can be
-overwritten by a fresh join (`REJECTED` still blocks a retry -- see **Requests / Create
-Request - duplicate**); **Approve Request (for withdraw test)** re-approves it so
+The same folder then continues into withdraw + the join/withdraw rate limit, still
+against the same shared `{{sessionId}}`/`{{playerId}}`: **Approve Request (for withdraw
+test)** re-approves the request (it's back to `PENDING` after **Undo Rejection**) so
 **Withdraw Request - approved** can exercise the slot-giveback path (`wasApproved: true`,
 `withdrawRequest`'s shape mirrors `revertApproval`'s); **Get Session After Withdraw**
-confirms the slot actually came back.
+confirms the slot actually came back; **Withdraw Request - not withdrawable** checks
+withdrawing the now-`WITHDRAWN` request again 409s; **Create Request - rejoin inside
+cooldown** then tries to rejoin immediately and gets 429 `REJOIN_COOLDOWN` --
+`Request.assertCanRejoin` blocks it before `create()`'s repository-level duplicate check
+(which would otherwise allow overwriting a `WITHDRAWN` row) is ever reached. The 3-join
+cap needs a 20+ minute real wait to exercise, so it's covered by `Request.assertCanRejoin`'s
+jest spec instead (`packages/server/src/domain/request/request.entity.spec.ts`), not here.
 
-`Withdraw Cutoff` exercises the 6h late-withdrawal protection added on top of Phase 3.5:
-**Create Session - starts soon** makes a session 2h out (inside the cutoff, unlike the
-shared `{{sessionId}}` which starts "tomorrow"); **Join Soon Session** requests it;
-**Withdraw - pending inside cutoff** confirms a `PENDING` withdraw is still allowed at any
-time (the host never held that slot); **Rejoin Soon Session** -> **Approve Soon Request**
-get an `APPROVED` request on the same soon session; **Withdraw - inside cutoff** then 409s
-with `WITHDRAWAL_WINDOW_CLOSED`.
+`Withdraw Cutoff` exercises the 6h late-withdrawal protection: **Create Session - starts
+soon** makes a session 2h out (inside the cutoff, unlike the shared `{{sessionId}}` which
+starts "tomorrow") and **Join Soon Session** requests it; **Withdraw - pending inside
+cutoff** confirms a `PENDING` withdraw is still allowed at any time (the host never held
+that slot) -- on its *own* session, since withdrawing starts that session's 10-minute
+rejoin cooldown and nothing here needs to rejoin it. **Create Session - starts soon
+(session B)** / **Join Soon Session (session B)** / **Approve Soon Request** get a
+*second*, separate soon-starting session to an `APPROVED` state (no withdraw involved, so
+no cooldown to dodge); **Withdraw - inside cutoff** then 409s with
+`WITHDRAWAL_WINDOW_CLOSED` on that session.
 
-`Notifications` exercises Part C's host-facing withdrawal notifications. By the time it
-runs, several withdrawals have already gone through `request-withdrawn`
-(`infra/notification.ts`'s DynamoDB Streams subscriber), each writing a `NOTIF#` row under
-the host. **List - after withdraw** waits ~3s for that async stream delivery, then asserts
-the host has at least one `REQUEST_WITHDRAWN` notification with the actor's name set;
-**Mark read** sets the read watermark (`notifications_read_at`, one `UpdateCommand`, not
-one write per notification); **Get lastReadAt - persists** confirms a follow-up read sees
-the same value.
+`Notifications` exercises the request-lifecycle notifications (join/rejoin, approve,
+reject, withdraw -- `request-status-changed`, `infra/notification.ts`'s DynamoDB Streams
+subscriber) and the delete-on-undo behavior. **List (host) - after lifecycle events**
+waits ~3s for the async stream delivery, then asserts the host has a `REQUEST_CREATED`
+notification (from the original join) and a `REQUEST_WITHDRAWN` one (`wasApproved: true`)
+for the shared session. **List (player) - after lifecycle events** asserts the player has
+*no* `REQUEST_REJECTED` notice for it (the undo in **Host Decisions** deleted it) and
+*exactly one* `REQUEST_APPROVED` notice (the first approval's notice was also deleted by
+its own undo -- only the second approval's notice survives). **Mark read** sets the read
+watermark (`notifications_read_at`, one `UpdateCommand`, not one write per notification);
+**Get lastReadAt - persists** confirms a follow-up read sees the same value.
 
 ## What's not implemented yet
 
@@ -193,6 +203,7 @@ them at.
 | `User / Complete Onboarding - missing level` | 400 `REQUEST_VALIDATION_FAILED` -- unlike `PATCH /users/me`, onboarding requires both `fullName` and `skillLevel`; runs before the happy path so a rejected call provably doesn't set `onboarded_at` |
 | `Host Decisions / Withdraw Request - not withdrawable` | 409 `REQUEST_NOT_WITHDRAWABLE` -- withdrawing an already-`WITHDRAWN` request is rejected before the repository is touched |
 | `Withdraw Cutoff / Withdraw - inside cutoff` | 409 `WITHDRAWAL_WINDOW_CLOSED` -- an `APPROVED` request can't be withdrawn within 6h of session start; `Withdraw - pending inside cutoff` is the control case proving `PENDING` still can |
+| `Host Decisions / Create Request - rejoin inside cooldown` | 429 `REJOIN_COOLDOWN` -- a rejoin within `REJOIN_COOLDOWN_MINUTES` of withdrawing is blocked before `create()`'s repository-level duplicate check is ever reached |
 | `Notifications / List - no token` | 401 -- catches `NotificationModule` silently losing `imports: [AuthModule]` |
 
 ## Response envelope

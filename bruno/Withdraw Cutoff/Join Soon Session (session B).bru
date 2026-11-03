@@ -1,0 +1,38 @@
+meta {
+  name: Join Soon Session (session B)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{apiUrl}}/requests
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{idToken2}}
+}
+
+body:json {
+  {
+    "sessionId": "{{soonSessionId2}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setEnvVar("soonPlayerId2", res.getBody().data.user.id);
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.success: eq true
+  res.body.data.status: eq PENDING
+}
+
+docs {
+  Run as the **player** (`{{idToken2}}`), joins **Create Session - starts soon (session
+  B)** above.
+}
