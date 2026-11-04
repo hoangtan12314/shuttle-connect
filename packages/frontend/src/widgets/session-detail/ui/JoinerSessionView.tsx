@@ -172,7 +172,6 @@ export function JoinerSessionView({
               <JoinSessionButton
                 session={session}
                 isAuthenticated={isAuthenticated}
-                disabled={isCoolingDown}
               />
             )}
             <p className="text-muted-foreground text-center text-xs">
