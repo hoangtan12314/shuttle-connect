@@ -134,6 +134,30 @@ have to be added deliberately:
   `className`. Plain `<button>`s, and labels around choice controls, carry it themselves (don't
   put it on `Label` globally; most labels belong to text fields).
 
+**Mobile content rule.** A layout that works at desktop width can still break at ~400px even
+when nothing technically overflows the viewport — content inside a container can get squeezed
+until it's unreadable, which `overflow-x`/gutter checks don't catch. When generating a UI,
+actively look for this instead of just checking the page doesn't scroll sideways:
+- **Prefer shorter copy over truncation.** A tab/label that's fine at desktop width
+  (`"My Joined Sessions (5)"`) can crowd out its siblings at phone width. Don't add a
+  page-specific long label when a shorter one already exists elsewhere for the same concept —
+  `widgets/my-sessions-calendar`'s tabs reuse the same `tagJoined`/`tagHosted` i18n keys its own
+  cards already use ("Joined"/"Hosted"), instead of a separate, longer `tabJoined`/`tabHosted`
+  pair.
+- **Don't let a layout squeeze an unbounded number of same-row items — restructure instead.** A
+  calendar library (or similar) that lays out N overlapping items by dividing the available
+  width by N will silently stop being readable past 2-3 items, with no error to catch it, and
+  capping the visible count (e.g. FullCalendar's own `eventMaxStack` + "+N" popover) still only
+  buys a little headroom before the same problem returns at the next narrower breakpoint.
+  `widgets/my-sessions-calendar` instead clusters overlapping sessions in code
+  (`clusterOverlappingEvents`) so FullCalendar only ever renders ONE non-overlapping box per
+  cluster, with the rest reachable through a small "N sessions at this time" disclosure
+  (`OverlapDisclosure`) that opens a dialog — no squeeze at any width, because nothing is ever
+  actually laid out side by side.
+- **Verify at phone width before calling a page done**, the same way `artifact-design` already
+  requires for artifacts — don't assume a `flex-wrap`/`grid-cols-1` breakpoint is sufficient
+  without actually checking what's inside each cell at ~400px.
+
 `infra/web.ts` deploys the frontend as an `sst.aws.StaticSite` and injects `VITE_API_URL` /
 `VITE_COGNITO_*` as real env vars via `dev.command`, so `pnpm run sst:dev` starts Vite with live
 values — no hand-maintained `.env` for the deployed API/Cognito client id. Local-only `pnpm run
