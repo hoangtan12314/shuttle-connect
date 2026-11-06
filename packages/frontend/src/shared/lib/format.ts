@@ -41,6 +41,28 @@ export function formatDayStrip(
   };
 }
 
+/** Day-of-month plus its month, compact enough for a narrow pill (widgets/my-sessions-calendar's
+ *  DayStrip) -- a bare day number alone ("14") is ambiguous once the strip spans multiple
+ *  months. Each language keeps its own natural short form rather than one shared
+ *  template: formatCompactDate(date, 'en') -> "Oct 14", formatCompactDate(date, 'vi') -> "14/10"
+ *  (English names its months in running text; Vietnamese writes a short date numerically). */
+export function formatCompactDate(date: Date, language: Language): string {
+  const locale = localeFor[language];
+  if (language === 'vi') {
+    const day = new Intl.DateTimeFormat(locale, { day: 'numeric' }).format(
+      date,
+    );
+    const month = new Intl.DateTimeFormat(locale, { month: 'numeric' }).format(
+      date,
+    );
+    return `${day}/${month}`;
+  }
+  return new Intl.DateTimeFormat(locale, {
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
+}
+
 // Index = Date.getDay() (0 = Sunday). Vietnamese uses its own compact convention ("T4" = thứ tư),
 // which Intl doesn't produce -- vi-VN's short weekday is "Th 4".
 const VI_WEEKDAY_SHORT = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
@@ -66,6 +88,21 @@ export function formatDateTime(isoString: string, language: Language): string {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(isoString));
+}
+
+/** Same fields as formatDateTime minus the time -- for a day-group header (widgets/
+ *  my-sessions-calendar's SessionList) where the time already shows on each row underneath.
+ *  Builds the weekday via formatWeekdayShort rather than asking Intl for it directly -- vi-VN's
+ *  native short weekday is "Th 4", but this app's own convention (DayStrip's pills) is "T4",
+ *  which only formatWeekdayShort's VI_WEEKDAY_SHORT table produces. Asking Intl here too would
+ *  show two different Vietnamese weekday abbreviations on the same page. */
+export function formatDayHeader(date: Date, language: Language): string {
+  const weekday = formatWeekdayShort(date, language);
+  const monthDay = new Intl.DateTimeFormat(localeFor[language], {
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
+  return `${weekday}, ${monthDay}`;
 }
 
 /** e.g. formatTimeRange('2026-10-17T18:00:00.000Z', '2026-10-17T20:00:00.000Z', 'en')

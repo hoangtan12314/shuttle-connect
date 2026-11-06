@@ -21,17 +21,16 @@ list before assuming a file is still a stub; it changes incrementally across ses
 - `widgets/app-shell`, `widgets/session-browser`, `widgets/host-requests-panel`,
   `widgets/session-detail`
 - `pages/browse-sessions`, `pages/session-detail`
-- Routes: `/`, `/sessions/$sessionId`, `/callback` are real; `/activity`, `/notifications`,
-  `/profile`, `/sessions/new`, `/sessions/$sessionId/manage` are intentional "coming soon" stubs
-  (their own route files, not yet backed by a `pages/` slice)
+- Routes: `/`, `/sessions/$sessionId`, `/callback`, `/activity`, `/notifications`,
+  `/sessions/new`, `/sessions/$sessionId/manage` are real; `/profile` is the one remaining
+  intentional "coming soon" stub (its own route file, not yet backed by a `pages/` slice)
 
 **Still placeholder (one-line comment, not implemented):**
-- `entities/court` (whole slice — `useCourts`, `CourtOption`)
-- `features/create-session`, `features/update-profile` (whole slices)
-- `pages/create-session`, `pages/profile`
+- `features/update-profile` (whole slice)
+- `pages/profile`
 
-Pick up here next: `features/create-session` + `pages/create-session` (Phase 4 of the UI-refactor
-plan — host flows), which also needs `entities/court` for the district→court picker.
+Pick up here next: `features/update-profile` + `pages/profile` (Phase 5 of the UI-refactor
+plan — the one remaining placeholder slice, backing the one remaining stub route, `/profile`).
 
 ## Architecture: Feature-Sliced Design
 
@@ -97,9 +96,11 @@ From the repo root, `pnpm run sst:dev` starts the real backend + this frontend t
   local `lib/utils.ts` — don't go looking for one.
 - MSW 3.x renamed `onUnhandledRequest` → `onUnhandledFrame` (already correct in
   `src/test/setup.ts`, worth knowing if a guide/example online still shows the old name).
-- `pnpm run lint` has a standing baseline of 7 `react-refresh/only-export-components` errors, one
-  per "coming soon" stub route (`__root.tsx`, `activity.tsx`, `callback.tsx`, `notifications.tsx`,
-  `profile.tsx`, `sessions.$sessionId.manage.tsx`, `sessions.new.tsx`) — each defines its page
-  component inline in the route file instead of a separate module. Pre-existing, not introduced by
-  whatever you're currently working on; confirm with `git stash && pnpm run lint` before assuming
-  a change caused it.
+- `pnpm run lint` has a standing baseline of 2 `react-refresh/only-export-components` errors:
+  `__root.tsx` (every route file exports both `Route` and its component in the same module —
+  this one just also defines a substantial `RootLayout`, not a stub) and `profile.tsx` (the one
+  remaining "coming soon" stub route, defining its placeholder component inline). Pre-existing,
+  not introduced by whatever you're currently working on; confirm with `git stash && pnpm run
+  lint` before assuming a change caused it. This count shrinks as more route files move their
+  component into a real `pages/` slice — update it here when that happens, don't let it drift
+  back out of sync with reality.

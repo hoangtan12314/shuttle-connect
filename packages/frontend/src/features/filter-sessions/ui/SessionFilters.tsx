@@ -21,6 +21,7 @@ import { Input } from '@/shared/ui/input';
 import { Area, SkillLevel } from '@shuttle-connect/types';
 import { useT, useLanguageStore, areaNames } from '@/shared/i18n';
 import {
+  dayPillClassName,
   formatDayStrip,
   formatWeekdayShort,
   formatPriceShort,
@@ -54,8 +55,6 @@ const next7Days = Array.from({ length: 7 }, (_, i) => {
 
 // Icons only earn their space on desktop; on a phone the label alone is enough.
 const chipIcon = 'max-md:hidden';
-const dayPill =
-  'flex h-13 w-16 shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-full border text-xs font-medium whitespace-nowrap transition-all active:scale-[0.96] md:w-22';
 
 export function SessionFilters({
   myLevel,
@@ -248,7 +247,7 @@ export function SessionFilters({
           type="button"
           onClick={() => setDay(null)}
           className={cn(
-            dayPill,
+            dayPillClassName,
             day === null
               ? 'border-primary bg-primary text-primary-foreground'
               : 'hover:bg-muted',
@@ -264,7 +263,7 @@ export function SessionFilters({
               type="button"
               onClick={() => setDay(i)}
               className={cn(
-                dayPill,
+                dayPillClassName,
                 day === i
                   ? 'border-primary bg-primary text-primary-foreground'
                   : 'hover:bg-muted',

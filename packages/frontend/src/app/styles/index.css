@@ -228,3 +228,48 @@ h6 {
     @apply bg-background text-foreground;
   }
 }
+
+/* widgets/my-sessions-calendar: map FullCalendar's own CSS variables onto the app's theme
+   tokens (the raw --background/--border/etc. above, which already flip for dark mode), rather
+   than letting FullCalendar's stock blue-on-white defaults show through. Scoped to .fc so this
+   can never leak onto an unrelated border-color/etc. elsewhere on the page. Event boxes
+   themselves aren't styled here -- eventContent renders our own SessionEventCard instead of
+   FullCalendar's default event chip, so only the grid chrome (slot lines, the today column, the
+   now-indicator) needs a mapping at all. */
+.fc {
+  --fc-border-color: var(--border);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: var(--muted);
+  --fc-today-bg-color: color-mix(in srgb, var(--primary) 6%, transparent);
+  --fc-now-indicator-color: var(--destructive);
+  --fc-event-bg-color: transparent;
+  --fc-event-border-color: transparent;
+}
+
+/* FullCalendar's own stylesheet forces white text on every event (it assumes a colored block,
+   not a custom card) -- caught live: SessionEventCard's court-name line had no explicit text
+   color of its own, so it silently inherited that white and rendered invisible on the card's
+   light background, while the lines around it (which did set an explicit color utility) were
+   fine. This resets the default back to the app's own foreground token so any future text
+   rendered through eventContent is visible by default, whether or not it remembers to set its
+   own color -- SessionEventCard's own classes still win where they're more specific. */
+.fc-event,
+.fc-event-main {
+  color: var(--foreground);
+}
+
+/* DayTimeGrid sets slotDuration to a full hour, so each .fc-timegrid-slot row below IS an hour,
+   not a half-hour -- FullCalendar's own default row height (sized for a plain colored block,
+   not a 3-line card) left a single-session, non-overlapping hour too short to fit
+   SessionEventCard's three lines, and an overlapping hour with OverlapDisclosure's extra line
+   even more so. expandRows={false} on the component keeps this exact height instead of
+   stretching rows to fill the fixed 600px viewport.
+   `.fc .fc-timegrid-slot { height: 1.5em }` is FullCalendar's own injected rule -- a plain
+   `.fc-timegrid-slot` selector here has LOWER specificity (one class vs. two) and silently
+   loses regardless of source order, which is what happened on the first attempt at this (height
+   stayed ~24px, confirmed live via getComputedStyle). Matching their exact selector plus
+   !important is the only reliable way to win against a hardcoded third-party rule with no CSS
+   variable of its own (unlike the colors above, which FullCalendar exposes as --fc-* vars). */
+.fc .fc-timegrid-slot {
+  height: 6rem !important;
+}
