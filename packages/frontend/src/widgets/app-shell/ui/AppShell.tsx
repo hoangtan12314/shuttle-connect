@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { Link } from '@tanstack/react-router';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { Link, useRouterState } from '@tanstack/react-router';
 import {
   Bell,
   CalendarDays,
@@ -167,6 +167,43 @@ export function AppShell({ children }: { children: ReactNode }) {
     ? unreadCount(notifications.items, notifications.lastReadAt)
     : 0;
 
+  // Mobile bottom tab bar's sliding active-pill indicator, shared by all 4 tabs (including
+  // `create`, now styled like the rest instead of its own permanent CTA pill). Measured via
+  // refs rather than CSS-only, since the tabs aren't equal width, so the distance between them
+  // isn't a fixed percentage `transform` can express without knowing actual pixel widths.
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
+  const activeTab = (
+    ['/', '/activity', '/sessions/new', '/notifications'] as const
+  ).find((to) => (to === '/' ? pathname === '/' : pathname.startsWith(to)));
+  const tabBarRef = useRef<HTMLElement>(null);
+  const tabRefs = useRef<Partial<Record<string, HTMLAnchorElement>>>({});
+  const [indicator, setIndicator] = useState<{
+    left: number;
+    width: number;
+  } | null>(null);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const bar = tabBarRef.current;
+      const activeLink = activeTab ? tabRefs.current[activeTab] : undefined;
+      if (!bar || !activeLink) {
+        setIndicator(null);
+        return;
+      }
+      const barRect = bar.getBoundingClientRect();
+      const linkRect = activeLink.getBoundingClientRect();
+      setIndicator({
+        left: linkRect.left - barRect.left,
+        width: linkRect.width,
+      });
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [activeTab]);
+
   const initials = me?.fullName
     ? me.fullName
         .trim()
@@ -300,33 +337,59 @@ export function AppShell({ children }: { children: ReactNode }) {
       </main>
 
       {/* Mobile bottom tab bar -- includes `create`, unlike the desktop sidebar's nav list. */}
-      <nav className="bg-card fixed inset-x-0 bottom-0 flex items-center justify-around border-t p-1 md:hidden">
+      <nav
+        ref={tabBarRef}
+        className="bg-card fixed inset-x-0 bottom-0 flex items-center justify-around border-t p-1 md:hidden"
+      >
+        {indicator && (
+          <span
+            aria-hidden
+            className="bg-primary-100 absolute top-1 left-0 h-11 rounded-xl transition-[transform,width] duration-300 ease-out"
+            style={{
+              width: `${indicator.width}px`,
+              transform: `translateX(${indicator.left}px)`,
+            }}
+          />
+        )}
         <Link
+          ref={(el) => {
+            tabRefs.current['/'] = el ?? undefined;
+          }}
           to="/"
-          className="flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold"
+          className="relative z-10 flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold"
           activeProps={{ className: 'text-primary-700' }}
         >
           <Search className="size-5" />
           {t.navBrowse}
         </Link>
         <Link
+          ref={(el) => {
+            tabRefs.current['/activity'] = el ?? undefined;
+          }}
           to="/activity"
-          className="flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold"
+          className="relative z-10 flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold"
           activeProps={{ className: 'text-primary-700' }}
         >
           <CalendarDays className="size-5" />
           {t.navActivity}
         </Link>
         <Link
+          ref={(el) => {
+            tabRefs.current['/sessions/new'] = el ?? undefined;
+          }}
           to="/sessions/new"
-          className="bg-primary text-primary-foreground mx-1 flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-semibold"
+          className="relative z-10 flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold"
+          activeProps={{ className: 'text-primary-700' }}
         >
           <Plus className="size-5" />
           {t.navHost}
         </Link>
         <Link
+          ref={(el) => {
+            tabRefs.current['/notifications'] = el ?? undefined;
+          }}
           to="/notifications"
-          className="flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold"
+          className="relative z-10 flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold"
           activeProps={{ className: 'text-primary-700' }}
         >
           <span className="relative">
