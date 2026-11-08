@@ -15,22 +15,22 @@ list before assuming a file is still a stub; it changes incrementally across ses
 **Real and functional:**
 - `shared/api`, `shared/config`, `shared/i18n` (vi/en), `shared/lib` (formatters), `shared/ui`
   (shadcn primitives + the app's design tokens — see `app/styles/index.css`)
-- `entities/session`, `entities/request`, `entities/user` (`useMe` — `UserAvatar.tsx` is still a
-  placeholder, nothing currently renders it standalone)
-- `features/auth`, `features/join-session`, `features/decide-request`, `features/filter-sessions`
+- `entities/session`, `entities/request`, `entities/user` (`useMe`, `SkillLevelPicker` —
+  `UserAvatar.tsx` is still a placeholder, nothing currently renders it standalone)
+- `features/auth`, `features/join-session`, `features/decide-request`,
+  `features/filter-sessions`, `features/update-profile`
 - `widgets/app-shell`, `widgets/session-browser`, `widgets/host-requests-panel`,
-  `widgets/session-detail`
-- `pages/browse-sessions`, `pages/session-detail`
+  `widgets/session-detail`, `widgets/my-sessions-calendar`
+- `pages/browse-sessions`, `pages/session-detail`, `pages/activity`, `pages/profile`
 - Routes: `/`, `/sessions/$sessionId`, `/callback`, `/activity`, `/notifications`,
-  `/sessions/new`, `/sessions/$sessionId/manage` are real; `/profile` is the one remaining
-  intentional "coming soon" stub (its own route file, not yet backed by a `pages/` slice)
+  `/sessions/new`, `/sessions/$sessionId/manage`, `/profile` are all real now — no routes left
+  behind a "coming soon" stub.
 
 **Still placeholder (one-line comment, not implemented):**
-- `features/update-profile` (whole slice)
-- `pages/profile`
+- `entities/user/ui/UserAvatar.tsx` only — nothing currently renders it standalone.
 
-Pick up here next: `features/update-profile` + `pages/profile` (Phase 5 of the UI-refactor
-plan — the one remaining placeholder slice, backing the one remaining stub route, `/profile`).
+No placeholder slices remain. Next up (per the UI-refactor plan's handoff doc): optional polish
+items, not a new slice.
 
 ## Architecture: Feature-Sliced Design
 
@@ -96,11 +96,10 @@ From the repo root, `pnpm run sst:dev` starts the real backend + this frontend t
   local `lib/utils.ts` — don't go looking for one.
 - MSW 3.x renamed `onUnhandledRequest` → `onUnhandledFrame` (already correct in
   `src/test/setup.ts`, worth knowing if a guide/example online still shows the old name).
-- `pnpm run lint` has a standing baseline of 2 `react-refresh/only-export-components` errors:
+- `pnpm run lint` has a standing baseline of 1 `react-refresh/only-export-components` error:
   `__root.tsx` (every route file exports both `Route` and its component in the same module —
-  this one just also defines a substantial `RootLayout`, not a stub) and `profile.tsx` (the one
-  remaining "coming soon" stub route, defining its placeholder component inline). Pre-existing,
-  not introduced by whatever you're currently working on; confirm with `git stash && pnpm run
-  lint` before assuming a change caused it. This count shrinks as more route files move their
-  component into a real `pages/` slice — update it here when that happens, don't let it drift
-  back out of sync with reality.
+  this one just also defines a substantial `RootLayout`, not a stub). Pre-existing, not
+  introduced by whatever you're currently working on; confirm with `git stash && pnpm run lint`
+  before assuming a change caused it. Every other route file now just imports its component
+  from a `pages/` slice, which is why this is down to one — update this note if that ever
+  changes again.

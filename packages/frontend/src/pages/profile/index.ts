@@ -1,1 +1,1 @@
-// pages/profile public API
+export { ProfilePage } from './ui/ProfilePage';

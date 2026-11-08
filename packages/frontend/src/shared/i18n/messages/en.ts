@@ -124,6 +124,8 @@ export const en = {
   homeL: 'Home area',
   homeHint: 'Used as your default area when browsing.',
   step: 'Step 2 of 2 · Profile',
+  saveChangesBtn: 'Save changes',
+  profileSavedT: 'Profile updated',
 
   maxPrice: 'Max price per player',
   clear: 'Clear filters',

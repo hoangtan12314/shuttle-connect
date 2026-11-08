@@ -124,6 +124,8 @@ export const vi = {
   homeL: 'Khu vực chơi chính',
   homeHint: 'Dùng làm khu vực mặc định khi tìm buổi.',
   step: 'Bước 2 / 2 · Hồ sơ',
+  saveChangesBtn: 'Lưu thay đổi',
+  profileSavedT: 'Đã cập nhật hồ sơ',
 
   maxPrice: 'Giá tối đa / người',
   clear: 'Xóa bộ lọc',

@@ -1,1 +1,1 @@
-// features/update-profile public API
+export { ProfileForm } from './ui/ProfileForm';
