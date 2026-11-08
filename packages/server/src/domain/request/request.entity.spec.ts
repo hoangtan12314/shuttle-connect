@@ -1,9 +1,39 @@
-import { MAX_JOINS_PER_SESSION, REJOIN_COOLDOWN_MINUTES } from '@shuttle-connect/types';
+import {
+  MAX_JOINS_PER_SESSION,
+  REJOIN_COOLDOWN_MINUTES,
+  RequestStatus,
+} from '@shuttle-connect/types';
 import { Request } from './request.entity';
 import { JoinLimitReachedError, RejoinCooldownError } from '../shared/errors';
 
 const NOW = new Date('2026-01-01T12:00:00.000Z');
 const COOLDOWN_MS = REJOIN_COOLDOWN_MINUTES * 60 * 1000;
+
+describe('Request.create', () => {
+  it('creates a brand-new request as PENDING with joinCount 1 when no previousJoinCount is given', () => {
+    const request = Request.create({ userId: 'user-1', sessionId: 'session-1' });
+    expect(request.toJSON()).toMatchObject({
+      userId: 'user-1',
+      sessionId: 'session-1',
+      status: RequestStatus.PENDING,
+      joinCount: 1,
+    });
+  });
+
+  it('bumps joinCount one above the previous row on a rejoin', () => {
+    const request = Request.create({
+      userId: 'user-1',
+      sessionId: 'session-1',
+      previousJoinCount: 2,
+    });
+    expect(request.toJSON().joinCount).toBe(3);
+  });
+
+  it('has no id field -- identity is the (sessionId, userId) pair, not a surrogate key', () => {
+    const request = Request.create({ userId: 'user-1', sessionId: 'session-1' });
+    expect(request.toJSON()).not.toHaveProperty('id');
+  });
+});
 
 describe('Request.assertCanRejoin', () => {
   it('allows a rejoin once the cooldown has fully passed', () => {

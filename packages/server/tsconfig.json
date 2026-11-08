@@ -18,6 +18,12 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    // Explicit instead of TS's default "include every @types/* package" auto-detection --
+    // editors (tsserver) sometimes miss that auto-detection on a pnpm-symlinked node_modules,
+    // showing "Cannot find name 'describe'" in every *.spec.ts file even though `tsc` from the
+    // CLI resolves it fine (CLI re-scans node_modules/@types on every invocation; tsserver's
+    // in-memory project can go stale). Keep this list in sync with devDependencies' @types/*.
+    "types": ["aws-lambda", "express", "jest", "node", "supertest"]
   }
 }
