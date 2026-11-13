@@ -31,6 +31,7 @@ const SESSION: SessionItemResponse = {
     city: City.HO_CHI_MINH,
   },
   host: { id: 'host-1', name: 'Host' },
+  coverUrl: null,
 };
 
 const USER: UserItemResponse = {

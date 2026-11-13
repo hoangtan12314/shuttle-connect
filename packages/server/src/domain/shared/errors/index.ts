@@ -21,3 +21,6 @@ export * from './withdrawal-window-closed.error';
 export * from './too-many-requests.error';
 export * from './join-limit-reached.error';
 export * from './rejoin-cooldown.error';
+export * from './invalid-cover-upload.error';
+export * from './cover-change-limit-reached.error';
+export * from './rate-limit-exceeded.error';

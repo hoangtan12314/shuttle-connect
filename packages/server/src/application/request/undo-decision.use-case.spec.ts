@@ -43,6 +43,7 @@ function makeSession(overrides: Partial<SessionItemResponse> = {}): SessionItemR
       city: City.HO_CHI_MINH,
     },
     host: { id: 'host-1', name: 'Host' },
+    coverUrl: null,
     ...overrides,
   };
 }
@@ -94,6 +95,7 @@ function makeSessionRepo(
     findById: jest.fn(),
     getByUserId: jest.fn(),
     create: jest.fn(),
+    setCover: jest.fn(),
     ...overrides,
   };
 }

@@ -137,3 +137,23 @@ describe('SessionMapper.toOverview', () => {
     });
   });
 });
+
+describe('SessionMapper coverUrl', () => {
+  it('is null for a freshly created session (the cover is a separate upload)', () => {
+    expect(SessionMapper.toResponse(makeSession(), COURT, HOST).coverUrl).toBeNull();
+  });
+
+  it('is null for a stored session with no cover_key', () => {
+    const record = makeRecord(makeSession());
+    expect(SessionMapper.toResponse(record).coverUrl).toBeNull();
+    expect(SessionMapper.toOverview(record).coverUrl).toBeNull();
+  });
+
+  it('is the media CDN URL plus the cover key when cover_key is set (detail and overview)', () => {
+    const record = makeRecord(makeSession(), { cover_key: 'covers/s1/f1.webp' });
+    // The CDN base comes from the sst manual mock (src/__mocks__/sst.ts).
+    const expected = 'https://shuttle-connect-media-cdn.test/covers/s1/f1.webp';
+    expect(SessionMapper.toResponse(record).coverUrl).toBe(expected);
+    expect(SessionMapper.toOverview(record).coverUrl).toBe(expected);
+  });
+});

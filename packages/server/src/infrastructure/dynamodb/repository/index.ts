@@ -3,3 +3,4 @@ export * from './court.repository';
 export * from './request.repository';
 export * from './user.repository';
 export * from './notification.repository';
+export * from './rate-limiter.repository';

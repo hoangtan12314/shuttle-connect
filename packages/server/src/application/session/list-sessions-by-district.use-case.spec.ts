@@ -15,6 +15,7 @@ function makeSessionRepo(
     findById: jest.fn(),
     getByUserId: jest.fn(),
     create: jest.fn(),
+    setCover: jest.fn(),
     ...overrides,
   };
 }

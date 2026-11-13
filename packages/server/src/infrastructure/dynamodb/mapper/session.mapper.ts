@@ -7,6 +7,7 @@ import {
 } from '@shuttle-connect/types';
 import { Session } from '../../../domain/session';
 import { fromLocationKey } from './location';
+import { mediaUrl } from '../../s3/media-url';
 
 export interface SessionRecord {
   PK: string;
@@ -33,7 +34,14 @@ export interface SessionRecord {
   min_skill_level: number;
   description: string;
   created_at: number;
+  // Key under covers/ in the media bucket. Absent until the host confirms a cover upload.
+  cover_key?: string;
+  // How many covers have been confirmed for this session -- capped by setCover's condition.
+  cover_change_count?: number;
 }
+
+const coverUrlOf = (item: Record<string, any>): string | null =>
+  item.cover_key ? mediaUrl(item.cover_key as string) : null;
 
 export class SessionMapper {
   // GSI1PK/GSI1SK/GSI2PK/GSI2SK are NOT written here -- they need the court (for city/district)
@@ -102,6 +110,8 @@ export class SessionMapper {
           id: host!.id,
           name: host!.fullName,
         },
+        // A session that was just created can't have a cover yet -- that's a separate upload.
+        coverUrl: null,
       };
     }
 
@@ -132,6 +142,7 @@ export class SessionMapper {
         id: item.user_id,
         name: item.user_name,
       },
+      coverUrl: coverUrlOf(item),
     };
   }
 
@@ -156,6 +167,7 @@ export class SessionMapper {
         district,
         city,
       },
+      coverUrl: coverUrlOf(item),
     };
   }
 }

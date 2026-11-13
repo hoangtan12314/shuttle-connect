@@ -1,9 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateSessionInput, SessionItemResponse, SessionStatus } from '@shuttle-connect/types';
+import {
+  CreateSessionInput,
+  SESSION_CREATE_LIMIT,
+  SessionItemResponse,
+  SessionStatus,
+} from '@shuttle-connect/types';
 import { Session, SESSION_REPOSITORY, type SessionRepository } from '../../domain/session';
 import { COURT_REPOSITORY, type CourtRepository } from '../../domain/court';
 import { USER_REPOSITORY, type UserRepository } from '../../domain/user';
 import { EntityNotFoundError } from '../../domain/shared/errors';
+import { RATE_LIMITER, type RateLimiter } from '../../domain/shared/rate-limit';
 
 @Injectable()
 export class CreateSessionsUseCase {
@@ -11,9 +17,13 @@ export class CreateSessionsUseCase {
     @Inject(SESSION_REPOSITORY) private sessionRepository: SessionRepository,
     @Inject(COURT_REPOSITORY) private courtRepository: CourtRepository,
     @Inject(USER_REPOSITORY) private userRepository: UserRepository,
+    @Inject(RATE_LIMITER) private rateLimiter: RateLimiter,
   ) {}
 
   async execute(hostId: string, input: CreateSessionInput): Promise<SessionItemResponse> {
+    // First, before any read: an over-limit caller should cost one write and nothing else.
+    await this.rateLimiter.consume(hostId, 'session-create', SESSION_CREATE_LIMIT);
+
     const startTime = new Date(input.startTime);
     const endTime = new Date(input.endTime);
 

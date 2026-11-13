@@ -7,6 +7,7 @@ import {
   City,
   CourtItemResponse,
   CreateSessionInput,
+  SESSION_CREATE_LIMIT,
   ShuttleType,
   SkillLevel,
   UserItemResponse,
@@ -15,7 +16,8 @@ import { CreateSessionsUseCase } from './create-session.use-case';
 import type { SessionRepository } from '../../domain/session';
 import type { CourtRepository } from '../../domain/court';
 import type { UserRepository } from '../../domain/user';
-import { EntityNotFoundError } from '../../domain/shared/errors';
+import { EntityNotFoundError, RateLimitExceededError } from '../../domain/shared/errors';
+import type { RateLimiter } from '../../domain/shared/rate-limit';
 
 function makeCourt(overrides: Partial<CourtItemResponse> = {}): CourtItemResponse {
   return {
@@ -68,6 +70,7 @@ function makeSessionRepo(
     findById: jest.fn(),
     getByUserId: jest.fn(),
     create: jest.fn(),
+    setCover: jest.fn(),
     ...overrides,
   };
 }
@@ -96,10 +99,21 @@ function makeUserRepo(
   };
 }
 
+function makeRateLimiter(
+  overrides: Partial<jest.Mocked<RateLimiter>> = {},
+): jest.Mocked<RateLimiter> {
+  return { consume: jest.fn().mockResolvedValue(undefined), ...overrides };
+}
+
 describe('CreateSessionsUseCase', () => {
   it('throws EntityNotFoundError when the court does not exist', async () => {
     const courtRepo = makeCourtRepo({ findById: jest.fn().mockResolvedValue(null) });
-    const useCase = new CreateSessionsUseCase(makeSessionRepo(), courtRepo, makeUserRepo());
+    const useCase = new CreateSessionsUseCase(
+      makeSessionRepo(),
+      courtRepo,
+      makeUserRepo(),
+      makeRateLimiter(),
+    );
 
     await expect(useCase.execute('host-1', makeInput())).rejects.toThrow(EntityNotFoundError);
   });
@@ -108,7 +122,7 @@ describe('CreateSessionsUseCase', () => {
     const courtRepo = makeCourtRepo({ findById: jest.fn().mockResolvedValue(makeCourt()) });
     const userRepo = makeUserRepo({ findById: jest.fn().mockResolvedValue(null) });
     const sessionRepo = makeSessionRepo();
-    const useCase = new CreateSessionsUseCase(sessionRepo, courtRepo, userRepo);
+    const useCase = new CreateSessionsUseCase(sessionRepo, courtRepo, userRepo, makeRateLimiter());
 
     await expect(useCase.execute('host-1', makeInput())).rejects.toThrow(EntityNotFoundError);
     expect(sessionRepo.create).not.toHaveBeenCalled();
@@ -118,7 +132,7 @@ describe('CreateSessionsUseCase', () => {
     const courtRepo = makeCourtRepo({ findById: jest.fn().mockResolvedValue(makeCourt()) });
     const userRepo = makeUserRepo({ findById: jest.fn().mockResolvedValue(makeHost()) });
     const sessionRepo = makeSessionRepo();
-    const useCase = new CreateSessionsUseCase(sessionRepo, courtRepo, userRepo);
+    const useCase = new CreateSessionsUseCase(sessionRepo, courtRepo, userRepo, makeRateLimiter());
 
     const pastStart = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     await expect(useCase.execute('host-1', makeInput({ startTime: pastStart }))).rejects.toThrow();
@@ -133,7 +147,7 @@ describe('CreateSessionsUseCase', () => {
     const sessionRepo = makeSessionRepo({
       create: jest.fn().mockResolvedValue({ id: 'session-1' }),
     });
-    const useCase = new CreateSessionsUseCase(sessionRepo, courtRepo, userRepo);
+    const useCase = new CreateSessionsUseCase(sessionRepo, courtRepo, userRepo, makeRateLimiter());
 
     await useCase.execute('host-1', makeInput());
 
@@ -141,5 +155,42 @@ describe('CreateSessionsUseCase', () => {
     const [, passedCourt, passedHost] = sessionRepo.create.mock.calls[0];
     expect(passedCourt).toBe(court);
     expect(passedHost).toBe(host);
+  });
+
+  it("counts the request against the host's daily session-create limit", async () => {
+    const rateLimiter = makeRateLimiter();
+    const useCase = new CreateSessionsUseCase(
+      makeSessionRepo({ create: jest.fn().mockResolvedValue({ id: 'session-1' }) }),
+      makeCourtRepo({ findById: jest.fn().mockResolvedValue(makeCourt()) }),
+      makeUserRepo({ findById: jest.fn().mockResolvedValue(makeHost()) }),
+      rateLimiter,
+    );
+
+    await useCase.execute('host-1', makeInput());
+
+    expect(rateLimiter.consume).toHaveBeenCalledWith(
+      'host-1',
+      'session-create',
+      SESSION_CREATE_LIMIT,
+    );
+  });
+
+  it('rejects an over-limit host before reading the court or writing anything', async () => {
+    const courtRepo = makeCourtRepo();
+    const sessionRepo = makeSessionRepo();
+    const useCase = new CreateSessionsUseCase(
+      sessionRepo,
+      courtRepo,
+      makeUserRepo(),
+      makeRateLimiter({
+        consume: jest
+          .fn()
+          .mockRejectedValue(new RateLimitExceededError('session-create', new Date())),
+      }),
+    );
+
+    await expect(useCase.execute('host-1', makeInput())).rejects.toThrow(RateLimitExceededError);
+    expect(courtRepo.findById).not.toHaveBeenCalled();
+    expect(sessionRepo.create).not.toHaveBeenCalled();
   });
 });

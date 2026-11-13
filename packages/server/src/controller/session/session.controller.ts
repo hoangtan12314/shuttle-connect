@@ -1,10 +1,24 @@
-import { Body, Controller, Get, Inject, Param, Patch, Post, Query } from '@nestjs/common';
-import { RequestStatus } from '@shuttle-connect/types';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+import { MAX_COVER_BYTES, RequestStatus } from '@shuttle-connect/types';
 import {
   CreateSessionsUseCase,
   GetSessionByIdUseCase,
   GetSessionsByUserIdUseCase,
   ListSessionsByDistrictUseCase,
+  UploadCoverUseCase,
 } from '../../application/session';
 import { CreateSessionDto, DecideRequestDto, ListSessionsByDistrictDto } from '../dtos';
 import { ValidateBodyPipe } from '../pipes';
@@ -35,6 +49,8 @@ export class SessionController {
     private readonly undoDecisionUseCase: UndoDecisionUseCase,
     @Inject(WithdrawRequestUseCase)
     private readonly withdrawRequestUseCase: WithdrawRequestUseCase,
+    @Inject(UploadCoverUseCase)
+    private readonly uploadCoverUseCase: UploadCoverUseCase,
   ) {}
 
   @Public()
@@ -73,6 +89,29 @@ export class SessionController {
   ) {
     const createdSessions = await this.createSessionUseCase.execute(user.id, createSessionDTO);
     return createdSessions;
+  }
+
+  // The file is sent straight to us (multipart/form-data, field "file") instead of to S3 via a
+  // presigned ticket -- see CLAUDE.md's cover-photo section for why. memoryStorage() because the
+  // file (capped at MAX_COVER_BYTES) only needs to live in memory long enough to hand to S3;
+  // there's no reason to touch Lambda's /tmp. The interceptor's own fileSize limit is a cheap
+  // guard in front of UploadCoverUseCase's own check -- if multer rejects it first, that
+  // currently surfaces as a 500 via GlobalExceptionFilter's catch-all rather than a clean 400;
+  // acceptable since resizeImageForUpload keeps real uploads far under the cap in practice.
+  @Patch(':id/cover')
+  @UseInterceptors(
+    FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_COVER_BYTES } }),
+  )
+  async uploadCover(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.uploadCoverUseCase.execute(user.id, id, {
+      buffer: file.buffer,
+      size: file.size,
+      mimetype: file.mimetype,
+    });
   }
 
   // A different path shape from decide (':userId' vs. 'mine'), not the same route with a status
