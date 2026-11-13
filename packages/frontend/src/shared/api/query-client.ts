@@ -16,6 +16,10 @@ const TRANSLATED_ERROR_CODES = {
   [ErrorCode.REJOIN_COOLDOWN]: 'toastRejoinCooldown',
   [ErrorCode.JOIN_LIMIT_REACHED]: 'joinLimitReachedNote',
   [ErrorCode.RATE_LIMITED]: 'toastRateLimited',
+  // Also covers client-side failures (resize, the direct S3 POST): useUploadSessionCover wraps
+  // those in this same code, so every way an upload can fail shows one translated message.
+  [ErrorCode.INVALID_COVER_UPLOAD]: 'toastCoverUploadFailed',
+  [ErrorCode.COVER_CHANGE_LIMIT_REACHED]: 'toastCoverLimitReached',
 } as const;
 
 function errorMessage(error: unknown): string {

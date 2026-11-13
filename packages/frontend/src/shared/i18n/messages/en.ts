@@ -126,6 +126,18 @@ export const en = {
   step: 'Step 2 of 2 · Profile',
   saveChangesBtn: 'Save changes',
   profileSavedT: 'Profile updated',
+  coverL: 'Cover photo',
+  coverHint:
+    'Optional. JPG, PNG or WebP. We resize it and remove location data before uploading.',
+  coverPick: 'Choose a photo',
+  coverRemove: 'Remove photo',
+  coverChange: 'Change photo',
+  coverUploading: 'Uploading photo…',
+  coverUploaded: 'Cover photo updated',
+  toastCoverUploadFailed:
+    "Couldn't upload the photo. You can try again from the session's manage page.",
+  toastCoverLimitReached:
+    'This session has reached its limit of photo changes.',
 
   maxPrice: 'Max price per player',
   clear: 'Clear filters',

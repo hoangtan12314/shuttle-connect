@@ -47,10 +47,13 @@ export async function apiRequest<T>(
   init?: RequestInit,
 ): Promise<T> {
   const token = getIdToken();
+  // A FormData body (multipart uploads) must NOT get an explicit Content-Type -- fetch sets one
+  // itself, including the multipart boundary, only when none is already set.
+  const isFormData = init?.body instanceof FormData;
   const response = await fetch(`${CONFIG.apiUrl}${path}`, {
     ...init,
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },

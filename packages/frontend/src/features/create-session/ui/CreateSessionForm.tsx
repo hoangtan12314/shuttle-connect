@@ -1,8 +1,14 @@
-import { useMemo } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useForm, type Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from '@tanstack/react-router';
-import { Area, City, ShuttleType, SkillLevel } from '@shuttle-connect/types';
+import {
+  Area,
+  City,
+  ShuttleType,
+  SkillLevel,
+  type SessionItemResponse,
+} from '@shuttle-connect/types';
 import {
   Form,
   FormControl,
@@ -89,11 +95,23 @@ function NumberField({
   );
 }
 
-export function CreateSessionForm() {
+export function CreateSessionForm({
+  coverField,
+  onCreated,
+}: {
+  /** Extra field rendered above the submit button (the page passes the cover-photo picker --
+   *  a feature can't import another feature, so the page composes them). */
+  coverField?: ReactNode;
+  /** Runs after the session exists and before navigating to it (the page uploads the cover
+   *  here). A failure doesn't block navigation: the session was created either way, the error
+   *  already toasted globally, and the cover can be retried from the manage page. */
+  onCreated?: (session: SessionItemResponse) => Promise<unknown>;
+} = {}) {
   const t = useT();
   const language = useLanguageStore((state) => state.language);
   const navigate = useNavigate();
   const { mutate, isPending } = useCreateSession();
+  const [isFinishing, setIsFinishing] = useState(false);
 
   const schema = useMemo(() => makeCreateSessionSchema(t), [t]);
 
@@ -139,7 +157,15 @@ export function CreateSessionForm() {
         description: values.description || undefined,
       },
       {
-        onSuccess: (session) => {
+        onSuccess: async (session) => {
+          if (onCreated) {
+            setIsFinishing(true);
+            try {
+              await onCreated(session);
+            } catch {
+              // Already toasted by the global MutationCache handler -- see onCreated's doc.
+            }
+          }
           navigate({
             to: '/sessions/$sessionId',
             params: { sessionId: session.id },
@@ -374,8 +400,10 @@ export function CreateSessionForm() {
           />
         </section>
 
-        <Button type="submit" disabled={isPending} size="lg">
-          {isPending ? '...' : t.createSession}
+        {coverField}
+
+        <Button type="submit" disabled={isPending || isFinishing} size="lg">
+          {isFinishing ? t.coverUploading : isPending ? '...' : t.createSession}
         </Button>
       </form>
     </Form>

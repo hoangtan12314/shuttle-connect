@@ -12,6 +12,7 @@ export {
 } from './format';
 export { areasForCity } from './city-areas';
 export { courtPlaceholderGradient } from './placeholder-image';
+export { resizeImageForUpload } from './resize-image';
 export { dayPillClassName } from './day-pill';
 export { useMediaQuery } from './use-media-query';
 export { useAuthPromptStore } from './auth-prompt-store';

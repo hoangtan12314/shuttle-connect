@@ -18,7 +18,7 @@ list before assuming a file is still a stub; it changes incrementally across ses
 - `entities/session`, `entities/request`, `entities/user` (`useMe`, `SkillLevelPicker` —
   `UserAvatar.tsx` is still a placeholder, nothing currently renders it standalone)
 - `features/auth`, `features/join-session`, `features/decide-request`,
-  `features/filter-sessions`, `features/update-profile`
+  `features/filter-sessions`, `features/update-profile`, `features/upload-session-cover`
 - `widgets/app-shell`, `widgets/session-browser`, `widgets/host-requests-panel`,
   `widgets/session-detail`, `widgets/my-sessions-calendar`
 - `pages/browse-sessions`, `pages/session-detail`, `pages/activity`, `pages/profile`

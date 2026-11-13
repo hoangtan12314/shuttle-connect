@@ -126,6 +126,17 @@ export const vi = {
   step: 'Bước 2 / 2 · Hồ sơ',
   saveChangesBtn: 'Lưu thay đổi',
   profileSavedT: 'Đã cập nhật hồ sơ',
+  coverL: 'Ảnh bìa',
+  coverHint:
+    'Không bắt buộc. JPG, PNG hoặc WebP. Ảnh được thu nhỏ và xoá dữ liệu vị trí trước khi tải lên.',
+  coverPick: 'Chọn ảnh',
+  coverRemove: 'Xoá ảnh',
+  coverChange: 'Đổi ảnh',
+  coverUploading: 'Đang tải ảnh lên…',
+  coverUploaded: 'Đã cập nhật ảnh bìa',
+  toastCoverUploadFailed:
+    'Không tải được ảnh lên. Bạn có thể thử lại ở trang quản lý buổi.',
+  toastCoverLimitReached: 'Buổi này đã hết lượt đổi ảnh.',
 
   maxPrice: 'Giá tối đa / người',
   clear: 'Xóa bộ lọc',

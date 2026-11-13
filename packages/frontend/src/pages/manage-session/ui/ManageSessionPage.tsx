@@ -1,6 +1,7 @@
-import { useSession } from '@/entities/session';
+import { CoverPhoto, useSession } from '@/entities/session';
 import { useMe } from '@/entities/user';
 import { useAuthUser } from '@/features/auth';
+import { ChangeCoverButton } from '@/features/upload-session-cover';
 import { HostRequestPanel } from '@/widgets/host-requests-panel';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Button } from '@/shared/ui/button';
@@ -8,6 +9,12 @@ import { useT } from '@/shared/i18n';
 import { Link, useParams } from '@tanstack/react-router';
 import { RefreshCw } from 'lucide-react';
 import { SessionStatus } from '@shuttle-connect/types';
+
+// Standalone, not inlined in the component body -- Date.now() called directly during render trips
+// the React Compiler's purity rule (same pattern as entities/request's RequestRow).
+function hasStarted(startTime: string): boolean {
+  return new Date(startTime).getTime() <= Date.now();
+}
 
 // pages/manage-session: host-only. Same host-authorization shape as pages/session-detail (fetch
 // session + me, compare ids) -- this page doesn't trust SessionDetailPage's own check, since it's
@@ -67,10 +74,25 @@ export function ManageSessionPage() {
     );
   }
 
+  // The server refuses cover changes once the session has started, so don't offer one.
+  const canChangeCover = !hasStarted(session.startTime);
+
   return (
-    <HostRequestPanel
-      sessionId={session.id}
-      isFull={session.status === SessionStatus.FULL}
-    />
+    <div className="flex flex-col gap-4">
+      <CoverPhoto
+        courtId={session.court.id}
+        imageUrl={session.coverUrl}
+        className="aspect-[5/2] rounded-xl"
+      />
+      {canChangeCover && (
+        <div className="self-start">
+          <ChangeCoverButton sessionId={session.id} />
+        </div>
+      )}
+      <HostRequestPanel
+        sessionId={session.id}
+        isFull={session.status === SessionStatus.FULL}
+      />
+    </div>
   );
 }

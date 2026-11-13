@@ -1,4 +1,4 @@
-import { useSession } from '@/entities/session';
+import { CoverPhoto, useSession } from '@/entities/session';
 import { useMe } from '@/entities/user';
 import { useAuthUser } from '@/features/auth';
 import { HostSessionView, JoinerSessionView } from '@/widgets/session-detail';
@@ -50,9 +50,19 @@ export function SessionDetailPage() {
 
   const isHost = me?.id === session.host.id;
 
+  // Only when the host actually set a photo -- a gradient hero would just push the details down.
+  const cover = session.coverUrl && (
+    <CoverPhoto
+      courtId={session.court.id}
+      imageUrl={session.coverUrl}
+      className="aspect-[5/2] rounded-xl"
+    />
+  );
+
   if (isHost) {
     return (
       <div className="flex flex-col gap-4">
+        {cover}
         <HostSessionView session={session} />
         <Button asChild>
           <Link
@@ -67,10 +77,13 @@ export function SessionDetailPage() {
   }
 
   return (
-    <JoinerSessionView
-      session={session}
-      myLevel={me?.skillLevel}
-      isAuthenticated={isAuthenticated}
-    />
+    <div className="flex flex-col gap-4">
+      {cover}
+      <JoinerSessionView
+        session={session}
+        myLevel={me?.skillLevel}
+        isAuthenticated={isAuthenticated}
+      />
+    </div>
   );
 }

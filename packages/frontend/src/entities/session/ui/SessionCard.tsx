@@ -9,7 +9,7 @@ import {
 } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
 import { SessionStatusBadge } from './SessionStatusBadge';
-import { CourtPhoto } from './CourtPhoto';
+import { CoverPhoto } from './CoverPhoto';
 import {
   useT,
   useLanguageStore,
@@ -71,8 +71,9 @@ export function SessionCard({
 
   const header = (
     <>
-      <CourtPhoto
+      <CoverPhoto
         courtId={court.id}
+        imageUrl={session.coverUrl}
         className="-mt-6 mb-4 aspect-[5/2] rounded-t-xl"
       >
         {court.district && (
@@ -87,7 +88,7 @@ export function SessionCard({
           status={status}
           className="absolute top-2 right-2"
         />
-      </CourtPhoto>
+      </CoverPhoto>
       <CardHeader>
         <CardTitle>{court.name}</CardTitle>
       </CardHeader>
