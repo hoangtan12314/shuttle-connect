@@ -43,6 +43,8 @@ export interface SessionItemResponse {
     id: string;
     name: string;
   };
+  // CloudFront URL of the cover photo, or null if the host never set one.
+  coverUrl: string | null;
 }
 
 export interface SessionOverview {
@@ -63,4 +65,5 @@ export interface SessionOverview {
     district: Area;
     city: City;
   };
+  coverUrl: string | null;
 }
