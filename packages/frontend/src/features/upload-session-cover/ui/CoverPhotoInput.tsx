@@ -29,7 +29,11 @@ export function CoverPhotoInput({
   const [cached, setCached] = useState<{ file: File; url: string } | null>(
     null,
   );
-  if (cached?.file !== value) {
+  // `cached?.file` is `undefined` when cached is null, but `value` is `null` when no file is
+  // picked -- `undefined !== null` is true in JS, so without the `?? null` this "changed" on
+  // every render whenever no file was selected, calling setState unconditionally and tripping
+  // React's infinite-render guard ("Too many re-renders").
+  if ((cached?.file ?? null) !== value) {
     if (cached) URL.revokeObjectURL(cached.url);
     setCached(value ? { file: value, url: URL.createObjectURL(value) } : null);
   }
