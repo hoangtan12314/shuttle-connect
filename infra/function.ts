@@ -1,5 +1,6 @@
 import { userPool, userPoolClient } from "./auth";
 import { table } from "./database";
+import { mediaBucket, mediaCdn } from "./storage";
 
 export const externalEsbuildConfig = {
   esbuild: {
@@ -16,10 +17,16 @@ export const externalEsbuildConfig = {
 export const sessionFunction = new sst.aws.Function("session-handler", {
   handler:
     "packages/server/src/infrastructure/function/lambda/session.lambda.handler",
-  link: [table, userPool, userPoolClient],
+  link: [table, userPool, userPoolClient, mediaBucket, mediaCdn],
   logging: {
     retention: "1 month",
   },
+  // Cover uploads only ever need @aws-sdk/client-s3 (for PutObject/DeleteObject) and `multer`
+  // (pure JS, no native bindings) -- both covered by the blanket "@aws-sdk/*" external and the
+  // default bundling every other function here already uses. The earlier version of this
+  // feature needed its own esbuild config to bundle @aws-sdk/s3-presigned-post (not part of the
+  // runtime's SDK -- the same trap as @aws-sdk/util-dynamodb in infra/notification.ts); proxying
+  // uploads through this Lambda instead of a presigned URL removed that dependency entirely.
   nodejs: externalEsbuildConfig,
 });
 
