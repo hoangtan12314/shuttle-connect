@@ -232,6 +232,51 @@ both slip past the cap.
 
 ---
 
+## Session cover photo attributes (Main table)
+
+The Session item (§1) gains two optional attributes. The photo itself lives in S3, not DynamoDB;
+the item only points at it.
+
+- `cover_key` (string, optional) — the object key under `covers/` in the media bucket
+  (`infra/storage.ts`). Absent until the host uploads a cover. The mapper turns it into the
+  public `coverUrl` (CloudFront URL); the key, not a full URL, is stored so the CDN domain can
+  change without rewriting items.
+- `cover_change_count` (number, optional) — how many covers have been uploaded for this session.
+  `setCover` increments it in the same conditional write that sets `cover_key`, and the condition
+  (`cover_change_count < MAX_COVER_CHANGES_PER_SESSION`, plus `user_id = :host`) caps how much
+  storage one host can cause — the same "condition expression as the limit" pattern as
+  `join_count`.
+
+`setCover` uses `ReturnValues: 'ALL_OLD'`: the old image is the only way to learn the previous
+`cover_key` (so its object can be deleted) in that single write. Neither attribute is part of a
+GSI key, and `SessionOverview` (GSI1/GSI2 reads) carries `coverUrl` too, since GSI projections
+here are ALL.
+
+---
+
+## Rate-limit counters (Main table)
+
+Per-user, per-action request budgets (`RateLimiterDynamoDB`, `infrastructure/dynamodb/repository/`).
+One item per user, action and fixed time window:
+
+| Attribute | Value |
+|---|---|
+| `PK` | `RATE#<userId>` |
+| `SK` | `<action>#<windowStartEpochSeconds>`, e.g. `cover-upload#1762761600` |
+| `count` | requests counted in this window |
+| `expires_at` | window end + 1 h, in epoch seconds — the table's existing TTL attribute |
+
+Each counted request is a single `UpdateItem`: `ADD count 1` with the condition
+`attribute_not_exists(count) OR count < :limit`. A failed condition means the window is used up,
+which surfaces as a 429 (`RATE_LIMITED`). As with `join_count`, the condition *is* the limit, so
+parallel requests can't both get past it. No GSI keys (never in an index); TTL removes old windows.
+
+Fixed windows let a user reach up to 2× the limit around a window boundary. That's accepted: the
+goal is bounding abuse, not exact pacing. Current rules live in `@shuttle-connect/types`:
+`COVER_UPLOAD_LIMIT` (20/hour) and `SESSION_CREATE_LIMIT` (10/day).
+
+---
+
 ## Deferred: sessions at a specific court
 
 An earlier design had a third GSI (`court_id` → `created_at`) for this, but nothing ever queried it,

@@ -216,6 +216,53 @@ Every route is `/api/v1/...`. Two places define this and must agree. On the serv
 
 `sst.config.ts` (repo root) just does `await import("./infra")` in `run()` — every file under `infra/` registers its resources as a module-load side effect via `infra/index.ts`'s barrel export; a resource file not re-exported there never gets deployed. `infra/function.ts` bundles each Lambda straight from server's TypeScript source via esbuild (no `nest build`/`tsc` step involved) and explicitly excludes some packages from the bundle (`@aws-sdk/*`, unused `@nestjs/microservices` and `@nestjs/websockets` subpaths) via `nodejs.esbuild.external`. `infra/database.ts` defines the single DynamoDB table and its 2 GSIs — see `documentation/DATABASE_DESIGN.md` for the full access-pattern rationale; the doc's Streams-based denormalization sync is still design intent, not yet implemented. `infra/auth.ts` defines the Cognito pool and client; its hosted-UI domain prefix (`shuttle-connect-<stage>`) is unique across all AWS accounts, so a first deploy can fail on a name clash. `infra/web.ts` defines the frontend as an `sst.aws.StaticSite`, injecting `VITE_API_URL`/`VITE_COGNITO_*` via `environment` and using `dev.command` so `sst dev` runs the real Vite dev server rather than trying to deploy a static build. `.sst/` and `sst-env.d.ts` (generated in every package, auto-injected `Resource` types) are gitignored — never hand-edit them. **`infra/api.ts` routes by explicit method (`GET /sessions`, `POST /sessions`, ...), never `ANY`.** `sst.aws.ApiGatewayV2`'s `cors` option only auto-answers `OPTIONS` preflight requests when no route explicitly matches `OPTIONS` for that path; an `ANY` (or any route including `OPTIONS` in its method set) swallows the preflight itself and forwards it to the Lambda/`AuthGuard`, which has no `OPTIONS` handler and fails the preflight with a non-2xx status — the browser then reports it as a CORS error even though the actual CORS headers/config are fine. Keep new routes to the specific methods the controller defines.
 
+### Session cover photos: S3 + CloudFront, proxied through the API
+
+`infra/storage.ts` defines a private media bucket and a CloudFront `Router` in front of it.
+Uploads are **one step, proxied through our own Lambda** rather than a presigned URL the browser
+posts to S3 directly:
+`PATCH /sessions/:id/cover` (host only, before the session starts, multipart/form-data field
+`file`) resizes nothing itself — the browser already resized to WebP/JPEG via
+`shared/lib/resize-image.ts` (which also strips EXIF/GPS) — checks size (`MAX_COVER_BYTES`) and
+content type, writes the file under `covers/<sessionId>/<uuid>.<ext>` with `PutObjectCommand`,
+and sets `cover_key` on the session (conditional write, capped by
+`MAX_COVER_CHANGES_PER_SESSION`), deleting the previous cover.
+
+**Why proxy instead of a presigned URL**, given a presigned POST is the more common pattern for
+uploads: it's the right call for *large* files (avoids paying for gigabytes of transfer through
+compute), but covers are capped at 2 MB after the browser's resize — comfortably under both API
+Gateway's 10 MB request limit and Lambda's 6 MB synchronous payload limit. At that size, proxying
+removes a real gap a presigned-ticket design has: once issued, a ticket can be replayed against
+S3 directly any number of times within its expiry, invisibly to our Lambda, our rate limiter, and
+our logs. Proxying means every upload attempt *is* an authenticated API call — automatically
+rate-limited, automatically logged, with no separate ticket to steal. Don't copy this pattern for
+a feature with large files (video, attachments) — go back to a presigned URL for those.
+
+`FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_COVER_BYTES } })` in
+`SessionController` parses the multipart body; `memoryStorage()` because the file only needs to
+live in memory long enough to hand to S3, never touching Lambda's `/tmp`. Use cases talk to a
+`CoverStorage` port (`domain/session`, just `put`/`delete` now), implemented in
+`infrastructure/s3/`. The bucket has no browser-facing CORS at all (`cors: false`) — nothing
+browser-originated reaches it directly anymore, so there's no private `uploads/` prefix, no
+lifecycle-expiry rule, and no key-ownership check to maintain; every object under `covers/` was
+already validated before it was ever written.
+
+**Rate limits.** `UploadCoverUseCase` and `CreateSessionsUseCase` call
+`RateLimiter.consume(userId, action, rule)` first (a DynamoDB fixed-window counter, `RATE#<userId>`
+items; see `documentation/DATABASE_DESIGN.md`). Over the limit → 429 `RATE_LIMITED`, which the
+frontend already translates. These limits run *inside* the Lambda, so they bound what one account
+can make us do, but they **can't** keep a flood from spending API Gateway's throttle: HTTP APIs have
+no per-client throttling (that needs WAF in front of the API). So the cover route has its own tight
+route-level throttle in `infra/api.ts`, keyed by the exact path (`PATCH /sessions/{id}/cover`,
+registered ahead of the `PATCH /sessions/{proxy+}` catch-all so withdraw/decide-request don't share
+or dilute that budget). A flood can only slow cover uploads, never the rest of the API. Keep that
+route explicit, or the throttle stops targeting it.
+
+**Jest and `sst`:** the `sst` package is ESM-only and ts-jest emits CommonJS, so any spec whose
+imports reach `Resource` would fail to load. `packages/server/src/__mocks__/sst.ts` is a manual mock
+Jest applies automatically: every `Resource['<name>']` resolves to
+`{ name: 'test-<name>', url: 'https://<name>.test' }`.
+
 ### Commit convention
 
 Commit messages are enforced by commitlint (husky `commit-msg` hook) using Conventional Commits with a fixed scope enum: `frontend`, `server`, `types`, `infra`, `root` (see `commitlint.config.js`). A commit outside that scope list will be rejected.
