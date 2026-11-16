@@ -2,6 +2,13 @@
 // Session domain entity (the actual enforced rule). Keep both sides importing this one value.
 export const MAX_SESSION_HOURS = 6;
 
+// Upper bounds on what a host can type. Without them a typo (or a hostile client) could post
+// 1,000,000 slots -- the detail page draws one meter segment per slot -- or an absurd price.
+// Enforced by the server DTOs; the frontend forms read the same values for instant feedback.
+export const MAX_SLOTS_PER_SESSION = 50;
+// Per player, in VND.
+export const MAX_PRICE_PER_PLAYER = 10_000_000;
+
 // Cover photo limits. The server enforces these when the host's upload request lands (there's no
 // separate ticket step -- see CLAUDE.md's cover-photo section). The frontend reads the same
 // values to resize/encode before uploading, so an oversized or mistyped file never leaves the

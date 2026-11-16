@@ -19,6 +19,17 @@ export interface CreateSessionInput {
   description?: string;
 }
 
+// Every field optional: PATCH /sessions/:id changes only what's sent. Court and time are
+// deliberately absent -- request items copy them, so changing them would need a sync.
+export interface UpdateSessionInput {
+  slotsTotal?: number;
+  priceMale?: number;
+  priceFemale?: number;
+  shuttleType?: ShuttleType;
+  minSkillLevel?: SkillLevel;
+  description?: string;
+}
+
 export interface SessionItemResponse {
   id: string;
   status: SessionStatus;
