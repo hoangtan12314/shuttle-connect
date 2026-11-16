@@ -43,7 +43,12 @@ export const courtFunction = new sst.aws.Function("court-handler", {
 export const requestFunction = new sst.aws.Function("request-handler", {
   handler:
     "packages/server/src/infrastructure/function/lambda/request.lambda.handler",
-  link: [table, userPool, userPoolClient],
+  // mediaCdn is linked for a reason that isn't visible from this Lambda's own routes: the use
+  // cases here (join, decide, undo, withdraw) load the session through SessionRepositoryDynamoDB,
+  // and SessionMapper builds a session's coverUrl from the CDN's URL -- but only for a session
+  // that has a cover, so without this link everything works until the first covered session is
+  // joined, then every call on it 500s ("shuttle-connect-media-cdn is not linked").
+  link: [table, userPool, userPoolClient, mediaCdn],
   logging: {
     retention: "1 month",
   },

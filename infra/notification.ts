@@ -1,4 +1,5 @@
 import { table } from "./database";
+import { mediaCdn } from "./storage";
 
 // Unlike externalEsbuildConfig (infra/function.ts), @aws-sdk/util-dynamodb is NOT part of
 // Lambda's bundled AWS SDK v3 -- only the DynamoDB clients are. Externalizing it here (the way
@@ -38,7 +39,10 @@ table.subscribe(
   {
     handler:
       "packages/server/src/infrastructure/function/stream/request-status-changed.handler.handler",
-    link: [table, requestStatusChangedDlq],
+    // mediaCdn: the notification use cases load the session (SessionRepositoryDynamoDB), and
+    // SessionMapper resolves a covered session's coverUrl from the CDN -- see requestFunction in
+    // function.ts. Unlinked, a covered session's notifications would fail into the DLQ.
+    link: [table, requestStatusChangedDlq, mediaCdn],
     logging: {
       retention: "1 month",
     },
