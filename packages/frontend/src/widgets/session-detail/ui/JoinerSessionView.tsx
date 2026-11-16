@@ -5,9 +5,9 @@ import {
   SkillLevel,
 } from '@shuttle-connect/types';
 import { Link } from '@tanstack/react-router';
-import { Ban, Check, Clock, Lock, Users, X } from 'lucide-react';
-import { useMyRequests } from '@/entities/request';
-import { SessionCard } from '@/entities/session';
+import { Check, Clock, Lock, Users, X } from 'lucide-react';
+import { useMyRequests, RequestStatusBadge } from '@/entities/request';
+import { SessionStatusBadge } from '@/entities/session';
 import {
   hasReachedJoinLimit,
   isWithinRejoinCooldown,
@@ -22,7 +22,8 @@ import {
 import { useSessionFilters } from '@/features/filter-sessions';
 import { Button } from '@/shared/ui/button';
 import { useT, sessionStatusNames, useLanguageStore } from '@/shared/i18n';
-import { StatusCallout } from './StatusCallout';
+import { SessionDetailView } from './SessionDetailView';
+import { DetailActionBar } from './DetailActionBar';
 
 export function JoinerSessionView({
   session,
@@ -62,129 +63,143 @@ export function JoinerSessionView({
   const cooldownMinutes =
     isCoolingDown && withdrawnAt ? remainingCooldownMinutes(withdrawnAt) : null;
 
+  const isCancelled = session.status === SessionStatus.CANCELLED;
+
+  // Relation badge in the header: what this session currently means to the viewer, highest-
+  // priority state first -- an existing request (it's about *you*) before the session's own
+  // status (FULL/CANCELLED), same precedence JoinSessionButton already uses.
+  const badge = isCancelled ? undefined : existingRequest ? (
+    <RequestStatusBadge status={existingRequest.status} />
+  ) : session.status === SessionStatus.FULL ? (
+    <SessionStatusBadge status={session.status} />
+  ) : undefined;
+
+  let actionBar = null;
+  if (!isCancelled && existingRequest?.status === RequestStatus.APPROVED) {
+    actionBar = (
+      <DetailActionBar
+        icon={Check}
+        title={t.approvedT}
+        body={t.approvedB}
+        tone="primary"
+        note={isPastCutoff ? t.withdrawClosedNote : undefined}
+      >
+        <WithdrawConfirmDialog
+          joinCount={existingRequest.joinCount}
+          disabled={isPastCutoff}
+          isWithdrawing={isWithdrawing}
+          onConfirm={() => withdraw(session.id)}
+          triggerClassName="min-h-12 w-full justify-center"
+        />
+      </DetailActionBar>
+    );
+  } else if (
+    !isCancelled &&
+    existingRequest?.status === RequestStatus.PENDING
+  ) {
+    actionBar = (
+      <DetailActionBar icon={Clock} title={t.pendingT} body={t.pendingB}>
+        <WithdrawConfirmDialog
+          joinCount={existingRequest.joinCount}
+          isWithdrawing={isWithdrawing}
+          onConfirm={() => withdraw(session.id)}
+          triggerClassName="min-h-12 w-full justify-center"
+        />
+      </DetailActionBar>
+    );
+  } else if (
+    !isCancelled &&
+    existingRequest?.status === RequestStatus.REJECTED
+  ) {
+    actionBar = (
+      <DetailActionBar
+        icon={X}
+        title={t.rejectedT}
+        body={t.rejectedB}
+        tone="destructive"
+      >
+        <Button asChild size="lg" className="justify-start">
+          <Link to="/">{t.findAnother}</Link>
+        </Button>
+      </DetailActionBar>
+    );
+  } else if (
+    !isCancelled &&
+    isFreeToJoin &&
+    myLevel !== undefined &&
+    myLevel < session.minSkillLevel
+  ) {
+    actionBar = (
+      <DetailActionBar
+        icon={Lock}
+        title={t.belowLevel}
+        body={t.belowLevelB}
+        tone="destructive"
+      >
+        <Button
+          asChild
+          size="lg"
+          className="justify-start"
+          onClick={() => setMaxLevel(myLevel ?? null)}
+        >
+          <Link to="/">{t.seeAtMyLevel}</Link>
+        </Button>
+        <Button asChild variant="outline" size="lg" className="justify-start">
+          <Link to="/profile">{t.updateMyLevel}</Link>
+        </Button>
+      </DetailActionBar>
+    );
+  } else if (
+    session.status === SessionStatus.FULL &&
+    isFreeToJoin &&
+    (myLevel === undefined || myLevel >= session.minSkillLevel)
+  ) {
+    actionBar = (
+      <DetailActionBar
+        icon={Users}
+        title={sessionStatusNames[SessionStatus.FULL][language]}
+        body={t.sessionFullB}
+      >
+        <Button asChild variant="outline" size="lg" className="justify-start">
+          <Link to="/">{t.findAnother}</Link>
+        </Button>
+      </DetailActionBar>
+    );
+  } else if (
+    session.status === SessionStatus.OPEN &&
+    isFreeToJoin &&
+    (myLevel === undefined || myLevel >= session.minSkillLevel)
+  ) {
+    actionBar = (
+      <DetailActionBar
+        note={
+          isCapped
+            ? t.joinLimitReachedNote
+            : cooldownMinutes !== null
+              ? `${t.rejoinCooldownNote} ${cooldownMinutes} ${t.minUnit}`
+              : existingRequest?.status === RequestStatus.WITHDRAWN
+                ? t.withdrawnNoteT
+                : t.joinNote
+        }
+      >
+        {!isCapped && (
+          <JoinSessionButton
+            session={session}
+            isAuthenticated={isAuthenticated}
+            size="lg"
+            className="justify-center"
+          />
+        )}
+      </DetailActionBar>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-4">
-      <SessionCard session={session} myLevel={myLevel} />
-
-      <div className="space-y-1">
-        <p className="text-muted-foreground text-sm font-medium">
-          {t.hostedByL}
-        </p>
-        <p>{session.host.name}</p>
-      </div>
-
-      <div className="space-y-1">
-        <p className="text-muted-foreground text-sm font-medium">{t.notesL}</p>
-        <p>{session.description || t.descEmptyT}</p>
-      </div>
-
-      {session.status === SessionStatus.CANCELLED && (
-        <StatusCallout icon={Ban} title={t.cancelledT} tone="destructive" />
-      )}
-
-      {session.status !== SessionStatus.CANCELLED &&
-        existingRequest?.status === RequestStatus.APPROVED && (
-          <StatusCallout
-            icon={Check}
-            title={t.approvedT}
-            body={t.approvedB}
-            tone="primary"
-          >
-            <div className="flex flex-col items-center gap-2">
-              <WithdrawConfirmDialog
-                joinCount={existingRequest.joinCount}
-                disabled={isPastCutoff}
-                isWithdrawing={isWithdrawing}
-                onConfirm={() => withdraw(session.id)}
-              />
-              {isPastCutoff && (
-                <p className="text-muted-foreground max-w-sm text-center text-xs">
-                  {t.withdrawClosedNote}
-                </p>
-              )}
-            </div>
-          </StatusCallout>
-        )}
-
-      {session.status !== SessionStatus.CANCELLED &&
-        existingRequest?.status === RequestStatus.PENDING && (
-          <StatusCallout icon={Clock} title={t.pendingT} body={t.pendingB}>
-            <WithdrawConfirmDialog
-              joinCount={existingRequest.joinCount}
-              isWithdrawing={isWithdrawing}
-              onConfirm={() => withdraw(session.id)}
-            />
-          </StatusCallout>
-        )}
-
-      {session.status !== SessionStatus.CANCELLED &&
-        existingRequest?.status === RequestStatus.REJECTED && (
-          <StatusCallout
-            icon={X}
-            title={t.rejectedT}
-            body={t.rejectedB}
-            tone="destructive"
-          >
-            <Button asChild variant="outline">
-              <Link to="/">{t.findAnother}</Link>
-            </Button>
-          </StatusCallout>
-        )}
-
-      {session.status !== SessionStatus.CANCELLED &&
-        isFreeToJoin &&
-        myLevel !== undefined &&
-        myLevel < session.minSkillLevel && (
-          <StatusCallout
-            icon={Lock}
-            title={t.belowLevel}
-            body={t.belowLevelB}
-            tone="destructive"
-          >
-            <Button asChild onClick={() => setMaxLevel(myLevel ?? null)}>
-              <Link to="/">{t.seeAtMyLevel}</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link to="/profile">{t.updateMyLevel}</Link>
-            </Button>
-          </StatusCallout>
-        )}
-
-      {session.status === SessionStatus.FULL &&
-        isFreeToJoin &&
-        (myLevel === undefined || myLevel >= session.minSkillLevel) && (
-          <StatusCallout
-            icon={Users}
-            title={sessionStatusNames[SessionStatus.FULL][language]}
-            body={t.sessionFullB}
-          >
-            <Button asChild variant="outline">
-              <Link to="/">{t.findAnother}</Link>
-            </Button>
-          </StatusCallout>
-        )}
-
-      {session.status === SessionStatus.OPEN &&
-        isFreeToJoin &&
-        (myLevel === undefined || myLevel >= session.minSkillLevel) && (
-          <div className="flex flex-col items-center gap-2">
-            {!isCapped && (
-              <JoinSessionButton
-                session={session}
-                isAuthenticated={isAuthenticated}
-              />
-            )}
-            <p className="text-muted-foreground text-center text-xs">
-              {isCapped
-                ? t.joinLimitReachedNote
-                : cooldownMinutes !== null
-                  ? `${t.rejoinCooldownNote} ${cooldownMinutes} ${t.minUnit}`
-                  : existingRequest?.status === RequestStatus.WITHDRAWN
-                    ? t.withdrawnNoteT
-                    : t.joinNote}
-            </p>
-          </div>
-        )}
-    </div>
+    <SessionDetailView
+      session={session}
+      myLevel={myLevel}
+      badge={badge}
+      actionBar={actionBar}
+    />
   );
 }

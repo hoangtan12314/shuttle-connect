@@ -1,10 +1,11 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { useForm, type Control } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from '@tanstack/react-router';
 import {
   Area,
   City,
+  MAX_SLOTS_PER_SESSION,
   ShuttleType,
   SkillLevel,
   type SessionItemResponse,
@@ -27,7 +28,12 @@ import {
 import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
 import { Button } from '@/shared/ui/button';
+import { FormSection } from '@/shared/ui/form-section';
+import { PriceInput } from '@/shared/ui/price-input';
+import { Stepper } from '@/shared/ui/stepper';
+import { StickyBar } from '@/shared/ui/sticky-bar';
 import { useCourts, CourtOption } from '@/entities/court';
+import { SkillLevelPicker } from '@/entities/user';
 import { useCreateSession } from '../api/use-create-session';
 import {
   makeCreateSessionSchema,
@@ -43,57 +49,10 @@ import {
   useT,
   useLanguageStore,
   areaNames,
-  skillLevelNames,
   shuttleTypeNames,
 } from '@/shared/i18n';
-import { areasForCity } from '@/shared/lib';
-
-// Local to this form, not a new shared primitive -- Zod v4 splits a `z.coerce.number()` field's
-// input/output types, which zodResolver's generic doesn't reconcile with react-hook-form's
-// `Control<T>`. Keeping the schema's number fields as plain `z.number()` (input === output) and
-// doing the string->number conversion here, in the one place a `<input type="number">`'s raw DOM
-// value needs it, sidesteps that entirely.
-function NumberField({
-  control,
-  name,
-  label,
-  min,
-  step,
-  hint,
-}: {
-  control: Control<CreateSessionFormValues>;
-  name: 'slotsTotal' | 'priceMale' | 'priceFemale';
-  label: string;
-  min: number;
-  step?: number;
-  hint?: string;
-}) {
-  return (
-    <FormField
-      control={control}
-      name={name}
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            <Input
-              type="number"
-              min={min}
-              step={step}
-              name={field.name}
-              value={field.value}
-              onBlur={field.onBlur}
-              ref={field.ref}
-              onChange={(e) => field.onChange(e.target.valueAsNumber)}
-            />
-          </FormControl>
-          {hint && <p className="text-muted-foreground text-sm">{hint}</p>}
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  );
-}
+import { areasForCity, formatDayHeader, formatTimeRange } from '@/shared/lib';
+import { ArrowRight, Users } from 'lucide-react';
 
 export function CreateSessionForm({
   coverField,
@@ -104,7 +63,7 @@ export function CreateSessionForm({
   coverField?: ReactNode;
   /** Runs after the session exists and before navigating to it (the page uploads the cover
    *  here). A failure doesn't block navigation: the session was created either way, the error
-   *  already toasted globally, and the cover can be retried from the manage page. */
+   *  already toasted globally, and the cover can be retried from the edit page. */
   onCreated?: (session: SessionItemResponse) => Promise<unknown>;
 } = {}) {
   const t = useT();
@@ -130,6 +89,7 @@ export function CreateSessionForm({
         SUGGESTED_SESSION_HOURS,
       ),
       slotsTotal: 8,
+      slotsFilled: 1,
       minSkillLevel: SkillLevel.BEGINNER,
       priceMale: 0,
       priceFemale: 0,
@@ -142,13 +102,27 @@ export function CreateSessionForm({
   const area = form.watch('area');
   const { data: courts, isLoading: isCourtsLoading } = useCourts(city, area);
 
+  // Summary line in the sticky bar. A half-typed datetime-local is '' (or Invalid Date), and
+  // Intl's format() throws a RangeError on an invalid Date, so only format once both parse.
+  const startTime = form.watch('startTime');
+  const endTime = form.watch('endTime');
+  const slotsTotal = form.watch('slotsTotal');
+  const slotsFilled = form.watch('slotsFilled');
+  const openSlots = slotsTotal - slotsFilled;
+  const timesValid =
+    !Number.isNaN(new Date(startTime).getTime()) &&
+    !Number.isNaN(new Date(endTime).getTime());
+  const summary = timesValid
+    ? `${formatDayHeader(new Date(startTime), language)} · ${formatTimeRange(startTime, endTime, language)} · ${openSlots} ${t.openShort}`
+    : '';
+
   const onSubmit = (values: CreateSessionFormValues) => {
     mutate(
       {
         courtId: values.courtId,
         startTime: new Date(values.startTime).toISOString(),
         endTime: new Date(values.endTime).toISOString(),
-        slotsRemaining: values.slotsTotal,
+        slotsRemaining: values.slotsTotal - values.slotsFilled,
         slotsTotal: values.slotsTotal,
         priceMale: values.priceMale,
         priceFemale: values.priceFemale,
@@ -181,9 +155,7 @@ export function CreateSessionForm({
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-col gap-8"
       >
-        <section className="flex flex-col gap-4">
-          <h2 className="font-semibold">{t.sec1}</h2>
-
+        <FormSection index={1} title={t.sec1}>
           <FormField
             control={form.control}
             name="area"
@@ -198,7 +170,7 @@ export function CreateSessionForm({
                   }}
                 >
                   <FormControl>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="h-12 w-full">
                       <SelectValue />
                     </SelectTrigger>
                   </FormControl>
@@ -227,7 +199,7 @@ export function CreateSessionForm({
                   disabled={isCourtsLoading || !courts?.length}
                 >
                   <FormControl>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="h-12 w-full">
                       <SelectValue
                         placeholder={isCourtsLoading ? '...' : undefined}
                       />
@@ -246,65 +218,114 @@ export function CreateSessionForm({
               </FormItem>
             )}
           />
-        </section>
+        </FormSection>
 
-        <section className="flex flex-col gap-4">
-          <h2 className="font-semibold">{t.sec2}</h2>
+        <FormSection index={2} title={t.sec2}>
+          {/* One column on phones: a datetime-local needs ~190px to show date and time, so two
+              side by side at ~400px would clip. */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="startTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t.start}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="datetime-local"
+                      className="h-12 text-base font-extrabold"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        // Re-suggest the end time from the new start; the user can still edit it.
+                        const suggestedEnd = addHoursToDateTimeLocal(
+                          e.target.value,
+                          SUGGESTED_SESSION_HOURS,
+                        );
+                        if (suggestedEnd) {
+                          form.setValue('endTime', suggestedEnd, {
+                            shouldValidate: form.formState.isSubmitted,
+                          });
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="startTime"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t.start}</FormLabel>
-                <FormControl>
-                  <Input
-                    type="datetime-local"
-                    {...field}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      // Re-suggest the end time from the new start; the user can still edit it.
-                      const suggestedEnd = addHoursToDateTimeLocal(
-                        e.target.value,
-                        SUGGESTED_SESSION_HOURS,
-                      );
-                      if (suggestedEnd) {
-                        form.setValue('endTime', suggestedEnd, {
-                          shouldValidate: form.formState.isSubmitted,
-                        });
+            <FormField
+              control={form.control}
+              name="endTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t.end}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="datetime-local"
+                      className="h-12 text-base font-extrabold"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </FormSection>
+
+        <FormSection index={3} title={t.sec3}>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="slotsTotal"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t.totL}</FormLabel>
+                  <Stepper
+                    value={field.value}
+                    min={1}
+                    max={MAX_SLOTS_PER_SESSION}
+                    decrementLabel={`${t.totL} −`}
+                    incrementLabel={`${t.totL} +`}
+                    onChange={(next) => {
+                      field.onChange(next);
+                      // Keep at least one slot open: pull the filled count down with the total.
+                      if (form.getValues('slotsFilled') > next - 1) {
+                        form.setValue('slotsFilled', Math.max(0, next - 1));
                       }
                     }}
                   />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="endTime"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t.end}</FormLabel>
-                <FormControl>
-                  <Input type="datetime-local" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </section>
+            <FormField
+              control={form.control}
+              name="slotsFilled"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t.filledL}</FormLabel>
+                  <Stepper
+                    value={field.value}
+                    min={0}
+                    max={slotsTotal - 1}
+                    decrementLabel={`${t.filledL} −`}
+                    incrementLabel={`${t.filledL} +`}
+                    onChange={field.onChange}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
-        <section className="flex flex-col gap-4">
-          <h2 className="font-semibold">{t.sec3}</h2>
-
-          <NumberField
-            control={form.control}
-            name="slotsTotal"
-            label={t.totL}
-            min={1}
-          />
+          <p className="bg-card flex items-center gap-2 rounded-xl border px-3.5 py-3 text-sm font-extrabold">
+            <Users className="text-accent size-5" />
+            {openSlots} {t.openSlotsForPlayers}
+          </p>
 
           <FormField
             control={form.control}
@@ -312,50 +333,49 @@ export function CreateSessionForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t.minL}</FormLabel>
-                <Select
-                  value={String(field.value)}
-                  onValueChange={(value) => field.onChange(Number(value))}
-                >
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.values(SkillLevel)
-                      .filter((v) => typeof v === 'number')
-                      .map((level) => (
-                        <SelectItem key={level} value={String(level)}>
-                          {skillLevelNames[level as SkillLevel][language]}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <SkillLevelPicker
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
+                <p className="text-muted-foreground text-sm">
+                  {t.levelWarnHint}
+                </p>
                 <FormMessage />
               </FormItem>
             )}
           />
-        </section>
+        </FormSection>
 
-        <section className="flex flex-col gap-4">
-          <h2 className="font-semibold">{t.sec4}</h2>
-
-          <NumberField
-            control={form.control}
-            name="priceMale"
-            label={t.priceM}
-            min={0}
-            step={1000}
-          />
-
-          <NumberField
-            control={form.control}
-            name="priceFemale"
-            label={t.priceF}
-            min={0}
-            step={1000}
-            hint={t.priceHint}
-          />
+        <FormSection index={4} title={t.sec4}>
+          <div className="grid grid-cols-2 gap-4">
+            {(['priceMale', 'priceFemale'] as const).map((name) => (
+              <FormField
+                key={name}
+                control={form.control}
+                name={name}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {name === 'priceMale' ? t.priceM : t.priceF}
+                    </FormLabel>
+                    <FormControl>
+                      <PriceInput
+                        name={field.name}
+                        value={Number.isNaN(field.value) ? '' : field.value}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+          </div>
+          <p className="text-muted-foreground -mt-2 text-sm">{t.priceHint}</p>
 
           <FormField
             control={form.control}
@@ -365,7 +385,7 @@ export function CreateSessionForm({
                 <FormLabel>{t.shuttleL}</FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="h-12 w-full">
                       <SelectValue />
                     </SelectTrigger>
                   </FormControl>
@@ -381,11 +401,9 @@ export function CreateSessionForm({
               </FormItem>
             )}
           />
-        </section>
+        </FormSection>
 
-        <section className="flex flex-col gap-4">
-          <h2 className="font-semibold">{t.sec5}</h2>
-
+        <FormSection index={5} title={t.sec5}>
           <FormField
             control={form.control}
             name="description"
@@ -398,13 +416,22 @@ export function CreateSessionForm({
               </FormItem>
             )}
           />
-        </section>
+        </FormSection>
 
         {coverField}
 
-        <Button type="submit" disabled={isPending || isFinishing} size="lg">
-          {isFinishing ? t.coverUploading : isPending ? '...' : t.createSession}
-        </Button>
+        <StickyBar>
+          {summary && <span className="text-sm font-extrabold">{summary}</span>}
+          <Button
+            type="submit"
+            size="lg"
+            disabled={isPending || isFinishing}
+            className="min-h-12 justify-between"
+          >
+            {isFinishing ? t.coverUploading : isPending ? '...' : t.postSession}
+            <ArrowRight />
+          </Button>
+        </StickyBar>
       </form>
     </Form>
   );

@@ -1,11 +1,11 @@
-import { CoverPhoto, useSession } from '@/entities/session';
+import { useSession } from '@/entities/session';
 import { useMe } from '@/entities/user';
 import { useAuthUser } from '@/features/auth';
 import { HostSessionView, JoinerSessionView } from '@/widgets/session-detail';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Button } from '@/shared/ui/button';
 import { useT } from '@/shared/i18n';
-import { Link, useParams } from '@tanstack/react-router';
+import { useParams } from '@tanstack/react-router';
 import { RefreshCw } from 'lucide-react';
 
 export function SessionDetailPage() {
@@ -24,9 +24,18 @@ export function SessionDetailPage() {
 
   if (isSessionLoading || isMeLoading) {
     return (
-      <div className="flex flex-col gap-4">
-        <Skeleton className="h-48 w-full" />
-        <Skeleton className="h-32 w-full" />
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-2">
+        <Skeleton className="aspect-[5/2] w-full rounded-xl" />
+        <div className="flex flex-col gap-2 py-2">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-11 w-2/3" />
+          <Skeleton className="h-6 w-1/2" />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Skeleton className="col-span-2 h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+        </div>
       </div>
     );
   }
@@ -50,40 +59,15 @@ export function SessionDetailPage() {
 
   const isHost = me?.id === session.host.id;
 
-  // Only when the host actually set a photo -- a gradient hero would just push the details down.
-  const cover = session.coverUrl && (
-    <CoverPhoto
-      courtId={session.court.id}
-      imageUrl={session.coverUrl}
-      className="aspect-[5/2] rounded-xl"
-    />
-  );
-
   if (isHost) {
-    return (
-      <div className="flex flex-col gap-4">
-        {cover}
-        <HostSessionView session={session} />
-        <Button asChild>
-          <Link
-            to="/sessions/$sessionId/manage"
-            params={{ sessionId: session.id }}
-          >
-            {t.manageT}
-          </Link>
-        </Button>
-      </div>
-    );
+    return <HostSessionView session={session} />;
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {cover}
-      <JoinerSessionView
-        session={session}
-        myLevel={me?.skillLevel}
-        isAuthenticated={isAuthenticated}
-      />
-    </div>
+    <JoinerSessionView
+      session={session}
+      myLevel={me?.skillLevel}
+      isAuthenticated={isAuthenticated}
+    />
   );
 }

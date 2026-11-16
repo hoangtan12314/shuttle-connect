@@ -61,9 +61,13 @@ function requestButtonState(
 export function JoinSessionButton({
   session,
   isAuthenticated,
+  className,
+  size,
 }: {
   session: SessionOverview;
   isAuthenticated: boolean;
+  className?: string;
+  size?: 'default' | 'sm' | 'lg' | 'icon';
 }) {
   const { mutate, isPending } = useJoinSession();
   const { data: myRequests, isLoading: isMyRequestLoading } =
@@ -88,13 +92,15 @@ export function JoinSessionButton({
         : sessionStatusNames[SessionStatus.FULL][language];
 
   if (isMyRequestLoading) {
-    return <Skeleton className="h-9 w-full" />;
+    return <Skeleton className={className ?? 'h-9 w-full'} />;
   }
 
   return (
     <Button
       variant={requestState?.variant}
+      size={size}
       disabled={disabled}
+      className={className}
       onClick={() => mutate({ sessionId: session.id })}
     >
       {label}

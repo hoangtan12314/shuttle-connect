@@ -6,7 +6,13 @@ import {
 import { useDecideRequest } from '../api/use-decide-request';
 import { useT } from '@/shared/i18n';
 
-export function RejectButton({ request }: { request: RequestItemResponse }) {
+export function RejectButton({
+  request,
+  className,
+}: {
+  request: RequestItemResponse;
+  className?: string;
+}) {
   const { mutate, isPending } = useDecideRequest();
   const t = useT();
 
@@ -22,6 +28,7 @@ export function RejectButton({ request }: { request: RequestItemResponse }) {
     <Button
       variant="outline"
       disabled={disabled}
+      className={className}
       onClick={() =>
         mutate({
           sessionId: request.session.id,

@@ -4,6 +4,7 @@ import {
   CoverPhotoInput,
   useUploadSessionCover,
 } from '@/features/upload-session-cover';
+import { PageHeader } from '@/shared/ui/page-header';
 import { useT } from '@/shared/i18n';
 
 // pages/create-session: composes features/create-session (the form) with
@@ -17,7 +18,7 @@ export function CreateSessionPage() {
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-6">
-      <h1 className="text-2xl font-bold">{t.createSession}</h1>
+      <PageHeader title={t.newSessionT} />
       <CreateSessionForm
         coverField={<CoverPhotoInput value={cover} onChange={setCover} />}
         onCreated={

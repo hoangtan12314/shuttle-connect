@@ -36,7 +36,7 @@ const NOTIF_LINK_TARGET: Record<NotificationType, 'manage' | 'detail'> = {
 
 // Standalone, not inlined in the component body -- Date.now() called directly during render trips
 // react-hooks/purity (render must be deterministic); a called function isn't analyzed the same
-// way, same as RequestRow.tsx's minutesSince.
+// way, same as RequestCard.tsx's minutesSince.
 function startsWithinMs(isoString: string, windowMs: number): boolean {
   return new Date(isoString).getTime() - Date.now() < windowMs;
 }

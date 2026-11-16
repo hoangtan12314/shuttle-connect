@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { Area, City, ShuttleType, SkillLevel } from '@shuttle-connect/types';
+import {
+  Area,
+  City,
+  MAX_PRICE_PER_PLAYER,
+  MAX_SLOTS_PER_SESSION,
+  ShuttleType,
+  SkillLevel,
+} from '@shuttle-connect/types';
 import type { Messages } from '@/shared/i18n';
 import {
   MAX_SESSION_DURATION_MS,
@@ -20,12 +27,18 @@ export function makeCreateSessionSchema(t: Messages) {
       courtId: z.string().min(1, t.courtReq),
       startTime: z.string().min(1, t.startTimeReq),
       endTime: z.string().min(1, t.endTimeReq),
-      slotsTotal: z.number().int().min(1),
+      slotsTotal: z.number().int().min(1).max(MAX_SLOTS_PER_SESSION),
+      // Players already on the court before posting (the host, friends). Open slots = total - this.
+      slotsFilled: z.number().int().min(0),
       minSkillLevel: z.enum(SkillLevel),
-      priceMale: z.number().min(0),
-      priceFemale: z.number().min(0),
+      priceMale: z.number().min(0).max(MAX_PRICE_PER_PLAYER),
+      priceFemale: z.number().min(0).max(MAX_PRICE_PER_PLAYER),
       shuttleType: z.enum(ShuttleType),
       description: z.string().optional(),
+    })
+    .refine((data) => data.slotsFilled < data.slotsTotal, {
+      message: t.slotsFilledErr,
+      path: ['slotsFilled'],
     })
     .refine((data) => new Date(data.startTime) >= new Date(), {
       message: t.startTimeFutureErr,

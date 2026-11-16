@@ -169,7 +169,7 @@ export function SessionBrowser() {
                     to="/sessions/$sessionId/manage"
                     params={{ sessionId: session.id }}
                   >
-                    <Button variant="outline">{t.manageT}</Button>
+                    <Button variant="outline">{t.manageShortBtn}</Button>
                   </Link>
                 ) : (
                   <JoinSessionButton

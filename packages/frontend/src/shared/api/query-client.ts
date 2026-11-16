@@ -20,6 +20,7 @@ const TRANSLATED_ERROR_CODES = {
   // those in this same code, so every way an upload can fail shows one translated message.
   [ErrorCode.INVALID_COVER_UPLOAD]: 'toastCoverUploadFailed',
   [ErrorCode.COVER_CHANGE_LIMIT_REACHED]: 'toastCoverLimitReached',
+  [ErrorCode.SESSION_NOT_EDITABLE]: 'notEditableT',
 } as const;
 
 function errorMessage(error: unknown): string {

@@ -9,7 +9,13 @@ import { useT } from '@/shared/i18n';
 // Reuses useDecideRequest -- the mutation is already generic over `status`, and undoing a
 // decision is just PATCHing the same route back to PENDING (UndoDecisionUseCase on the backend,
 // selected by the controller when status === PENDING). No separate mutation needed.
-export function UndoButton({ request }: { request: RequestItemResponse }) {
+export function UndoButton({
+  request,
+  className,
+}: {
+  request: RequestItemResponse;
+  className?: string;
+}) {
   const { mutate, isPending } = useDecideRequest();
   const t = useT();
 
@@ -22,6 +28,7 @@ export function UndoButton({ request }: { request: RequestItemResponse }) {
     <Button
       variant="outline"
       disabled={disabled}
+      className={className}
       onClick={() =>
         mutate({
           sessionId: request.session.id,

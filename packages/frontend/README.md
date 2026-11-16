@@ -18,12 +18,15 @@ list before assuming a file is still a stub; it changes incrementally across ses
 - `entities/session`, `entities/request`, `entities/user` (`useMe`, `SkillLevelPicker` —
   `UserAvatar.tsx` is still a placeholder, nothing currently renders it standalone)
 - `features/auth`, `features/join-session`, `features/decide-request`,
-  `features/filter-sessions`, `features/update-profile`, `features/upload-session-cover`
+  `features/filter-sessions`, `features/update-profile`, `features/upload-session-cover`,
+  `features/create-session`, `features/edit-session`
 - `widgets/app-shell`, `widgets/session-browser`, `widgets/host-requests-panel`,
   `widgets/session-detail`, `widgets/my-sessions-calendar`
-- `pages/browse-sessions`, `pages/session-detail`, `pages/activity`, `pages/profile`
+- `pages/browse-sessions`, `pages/session-detail`, `pages/activity`, `pages/profile`,
+  `pages/create-session`, `pages/edit-session`, `pages/manage-session`
 - Routes: `/`, `/sessions/$sessionId`, `/callback`, `/activity`, `/notifications`,
-  `/sessions/new`, `/sessions/$sessionId/manage`, `/profile` are all real now — no routes left
+  `/sessions/new`, `/sessions/$sessionId/manage`, `/sessions/$sessionId/edit`, `/profile` are all
+  real now — no routes left
   behind a "coming soon" stub.
 
 **Still placeholder (one-line comment, not implemented):**

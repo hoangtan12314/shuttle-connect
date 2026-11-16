@@ -17,6 +17,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as SessionsSessionIdRouteImport } from './routes/sessions.$sessionId'
 import { Route as SessionsNewRouteImport } from './routes/sessions.new'
+import { Route as SessionsSessionIdEditRouteImport } from './routes/sessions.$sessionId_.edit'
 import { Route as SessionsSessionIdManageRouteImport } from './routes/sessions.$sessionId_.manage'
 
 const IndexRoute = IndexRouteImport.update({
@@ -59,6 +60,11 @@ const SessionsNewRoute = SessionsNewRouteImport.update({
   path: '/sessions/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SessionsSessionIdEditRoute = SessionsSessionIdEditRouteImport.update({
+  id: '/sessions/$sessionId_/edit',
+  path: '/sessions/$sessionId/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SessionsSessionIdManageRoute = SessionsSessionIdManageRouteImport.update({
   id: '/sessions/$sessionId_/manage',
   path: '/sessions/$sessionId/manage',
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/sessions/$sessionId': typeof SessionsSessionIdRoute
   '/sessions/new': typeof SessionsNewRoute
+  '/sessions/$sessionId/edit': typeof SessionsSessionIdEditRoute
   '/sessions/$sessionId/manage': typeof SessionsSessionIdManageRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/sessions/$sessionId': typeof SessionsSessionIdRoute
   '/sessions/new': typeof SessionsNewRoute
+  '/sessions/$sessionId/edit': typeof SessionsSessionIdEditRoute
   '/sessions/$sessionId/manage': typeof SessionsSessionIdManageRoute
 }
 export interface FileRoutesById {
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/sessions/$sessionId': typeof SessionsSessionIdRoute
   '/sessions/new': typeof SessionsNewRoute
+  '/sessions/$sessionId_/edit': typeof SessionsSessionIdEditRoute
   '/sessions/$sessionId_/manage': typeof SessionsSessionIdManageRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/sessions/$sessionId'
     | '/sessions/new'
+    | '/sessions/$sessionId/edit'
     | '/sessions/$sessionId/manage'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/sessions/$sessionId'
     | '/sessions/new'
+    | '/sessions/$sessionId/edit'
     | '/sessions/$sessionId/manage'
   id:
     | '__root__'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/sessions/$sessionId'
     | '/sessions/new'
+    | '/sessions/$sessionId_/edit'
     | '/sessions/$sessionId_/manage'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +156,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   SessionsSessionIdRoute: typeof SessionsSessionIdRoute
   SessionsNewRoute: typeof SessionsNewRoute
+  SessionsSessionIdEditRoute: typeof SessionsSessionIdEditRoute
   SessionsSessionIdManageRoute: typeof SessionsSessionIdManageRoute
 }
 
@@ -205,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SessionsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sessions/$sessionId_/edit': {
+      id: '/sessions/$sessionId_/edit'
+      path: '/sessions/$sessionId/edit'
+      fullPath: '/sessions/$sessionId/edit'
+      preLoaderRoute: typeof SessionsSessionIdEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sessions/$sessionId_/manage': {
       id: '/sessions/$sessionId_/manage'
       path: '/sessions/$sessionId/manage'
@@ -224,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   SessionsSessionIdRoute: SessionsSessionIdRoute,
   SessionsNewRoute: SessionsNewRoute,
+  SessionsSessionIdEditRoute: SessionsSessionIdEditRoute,
   SessionsSessionIdManageRoute: SessionsSessionIdManageRoute,
 }
 export const routeTree = rootRouteImport

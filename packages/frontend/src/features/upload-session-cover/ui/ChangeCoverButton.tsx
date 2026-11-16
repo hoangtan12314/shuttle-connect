@@ -1,4 +1,4 @@
-// features/upload-session-cover/ui: "Change photo" for an existing session (manage page). Picks
+// features/upload-session-cover/ui: "Change photo" for an existing session (edit page). Picks
 // a file and uploads it immediately; errors toast through the global MutationCache handler.
 import { useId } from 'react';
 import { toast } from 'sonner';

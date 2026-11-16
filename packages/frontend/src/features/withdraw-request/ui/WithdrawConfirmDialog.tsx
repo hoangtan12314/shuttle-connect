@@ -25,6 +25,7 @@ export function WithdrawConfirmDialog({
   disabled,
   isWithdrawing,
   onConfirm,
+  triggerClassName,
 }: {
   // How many times this player has ever joined this session (including the current join) --
   // Request.assertCanRejoin's own input, mirrored here for display only.
@@ -32,6 +33,7 @@ export function WithdrawConfirmDialog({
   disabled?: boolean;
   isWithdrawing: boolean;
   onConfirm: () => void;
+  triggerClassName?: string;
 }) {
   const t = useT();
   const remainingRejoins = Math.max(0, MAX_JOINS_PER_SESSION - joinCount);
@@ -39,7 +41,11 @@ export function WithdrawConfirmDialog({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" disabled={disabled || isWithdrawing}>
+        <Button
+          variant="outline"
+          disabled={disabled || isWithdrawing}
+          className={triggerClassName}
+        >
           {t.withdrawBtn}
         </Button>
       </AlertDialogTrigger>
