@@ -1,0 +1,25 @@
+meta {
+  name: Update Session - no token
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{apiUrl}}/sessions/{{sessionId}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "priceMale": 1
+  }
+}
+
+assert {
+  res.status: eq 401
+}
+
+docs {
+  Editing is host-only, so there is no `@Public()` on this route: no token, no edit.
+}

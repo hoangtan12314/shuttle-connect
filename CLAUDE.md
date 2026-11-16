@@ -173,7 +173,7 @@ infrastructure/   DynamoDB repository implementations, NestJS DI modules (ioc/),
 controller/       NestJS controllers, request DTOs (class-validator), the global exception filter
 ```
 
-Vertical slices (controller → use case → repository → DynamoDB) exist for `session` (create, get by id — `listAll` is a stub that returns `[]`), `court` (create, get by id) and `request` (create only). `user` has an entity, repository and `ResolveCurrentUserUseCase` but no controller. Don't assume full CRUD exists for any of them.
+Vertical slices (controller → use case → repository → DynamoDB) exist for `session` (create, get by id, host-only partial update via `PATCH /sessions/:id` — `listAll` is a stub that returns `[]`), `court` (create, get by id) and `request` (create only). `user` has an entity, repository and `ResolveCurrentUserUseCase` but no controller. Don't assume full CRUD exists for any of them.
 
 Domain entities follow one consistent shape: private constructor, `static create(props)` (validates and throws domain errors), `static fromPersistence(props)` (no validation, used when rehydrating from storage), and `toJSON()`. Repositories are interfaces defined in `domain/`, bound to a DI token (`Symbol`, e.g. `SESSION_REPOSITORY`) and implemented in `infrastructure/dynamodb/`. When adding a repository method, register any new providers it needs in the relevant `infrastructure/ioc/*.module.ts` — a provider that exists but isn't added to a module's `providers` array fails at DI resolution time (or per-request, for constructor-injected dependencies deeper in the chain), not at compile time.
 
@@ -257,6 +257,15 @@ route-level throttle in `infra/api.ts`, keyed by the exact path (`PATCH /session
 registered ahead of the `PATCH /sessions/{proxy+}` catch-all so withdraw/decide-request don't share
 or dilute that budget). A flood can only slow cover uploads, never the rest of the API. Keep that
 route explicit, or the throttle stops targeting it.
+
+**A Lambda that reads sessions must link `mediaCdn`, even if it never serves a photo.**
+`SessionMapper.toResponse` builds a session's `coverUrl` from `Resource['shuttle-connect-media-cdn']`
+(`infrastructure/s3/media-url.ts`), lazily and *only for a session that has a cover*. So an
+unlinked Lambda works fine until the first covered session passes through it, then every call on
+that session 500s with `"shuttle-connect-media-cdn" is not linked` -- data-dependent, so it
+slips past testing on photo-less sessions. Any function whose module provides `SESSION_REPOSITORY`
+needs the link: today that's `session-handler` and `request-handler` (`infra/function.ts`) and the
+`request-status-changed` stream subscriber (`infra/notification.ts`).
 
 **Jest and `sst`:** the `sst` package is ESM-only and ts-jest emits CommonJS, so any spec whose
 imports reach `Resource` would fail to load. `packages/server/src/__mocks__/sst.ts` is a manual mock

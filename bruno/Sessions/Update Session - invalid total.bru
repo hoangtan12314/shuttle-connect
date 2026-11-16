@@ -1,0 +1,27 @@
+meta {
+  name: Update Session - invalid total
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{apiUrl}}/sessions/{{sessionId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "slotsTotal": 0
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.success: eq false
+}
+
+docs {
+  `UpdateSessionDto` requires `slotsTotal >= 1` (`@IsInt @Min(1)`), so this is rejected by
+  validation before the use case runs.
+}

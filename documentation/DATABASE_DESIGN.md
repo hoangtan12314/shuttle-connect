@@ -247,6 +247,17 @@ the item only points at it.
   storage one host can cause — the same "condition expression as the limit" pattern as
   `join_count`.
 
+**Editing a session** (`SessionRepositoryDynamoDB.update`, `PATCH /sessions/:id`) is one conditional
+`UpdateCommand` on the `META` item only -- request items are never touched, which is why court and
+time are *not* editable: requests copy `court_name`, `location`, `session_start_time` and the GSI2
+sort key from the session, and nothing keeps those in sync. What *is* editable (prices, shuttle,
+minimum level, description, total slots) lives only on the session item, and none of it feeds a GSI
+key. The condition re-checks `user_id = :host`, `start_time > :now`, `status` is OPEN/FULL, and
+`slots_total`/`slots_remaining` still equal what the use case read -- the same optimistic slot
+check `approveRequest` uses, so an approval landing mid-edit fails the edit (409) instead of being
+overwritten. Changing `slots_total` moves only `slots_remaining` (the filled count is fixed by
+approvals) and sets `status` to FULL when no slot is left, OPEN otherwise.
+
 `setCover` uses `ReturnValues: 'ALL_OLD'`: the old image is the only way to learn the previous
 `cover_key` (so its object can be deleted) in that single write. Neither attribute is part of a
 GSI key, and `SessionOverview` (GSI1/GSI2 reads) carries `coverUrl` too, since GSI projections

@@ -1,0 +1,43 @@
+meta {
+  name: Update Session
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{apiUrl}}/sessions/{{sessionId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "priceMale": 70000,
+    "minSkillLevel": 2,
+    "description": "Updated notes: bring your own water"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.data.priceMale: eq 70000
+  res.body.data.minSkillLevel: eq 2
+}
+
+tests {
+  test("untouched fields are left alone, including the slot counts later steps assert on", function () {
+    const session = res.getBody().data;
+    expect(session.priceFemale).to.equal(40000);
+    expect(session.slotsTotal).to.equal(8);
+    expect(session.slotsRemaining).to.equal(8);
+  });
+}
+
+docs {
+  `PATCH /sessions/:id`, as the host. Only the fields sent change. Court and time are not
+  accepted at all (request items copy them), and `slotsTotal` is deliberately left out of this
+  request: later folders assert `slotsTotal: 8` / `slotsRemaining: 7`, so resizing the session
+  here would break them. The server-side resize rules (never below the filled count, FULL <-> OPEN
+  flip) are covered by `update-session.use-case.spec.ts`.
+}
