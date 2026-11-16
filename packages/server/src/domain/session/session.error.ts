@@ -11,6 +11,18 @@ export class InvalidSlotValuesError extends ValidationError {
   }
 }
 
+// Thrown when a resize would leave fewer seats than players already approved. Same error code as
+// InvalidSlotValuesError (the frontend already translates it); only the message differs, so an API
+// caller sees the real reason instead of a negative internal "slotsRemaining".
+export class SlotsBelowFilledError extends ValidationError {
+  readonly code = ErrorCode.INVALID_SLOT_VALUES;
+
+  constructor(newTotal: number, filled: number) {
+    super(`slotsTotal (${newTotal}) can't be below the ${filled} slot(s) already filled.`);
+    this.name = 'SlotsBelowFilledError';
+  }
+}
+
 export class SessionFullError extends ValidationError {
   readonly code = ErrorCode.SESSION_FULL;
 

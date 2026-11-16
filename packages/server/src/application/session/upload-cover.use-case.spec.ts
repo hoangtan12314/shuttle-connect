@@ -62,6 +62,7 @@ function makeSessionRepo(
     getByUserId: jest.fn(),
     create: jest.fn(),
     setCover: jest.fn().mockResolvedValue({ previousCoverKey: null, session: makeSession() }),
+    update: jest.fn(),
     ...overrides,
   };
 }

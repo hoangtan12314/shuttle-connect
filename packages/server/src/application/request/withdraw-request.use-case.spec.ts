@@ -99,6 +99,7 @@ function makeSessionRepo(
     getByUserId: jest.fn(),
     create: jest.fn(),
     setCover: jest.fn(),
+    update: jest.fn(),
     ...overrides,
   };
 }

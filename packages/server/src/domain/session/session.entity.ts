@@ -1,6 +1,11 @@
 import { randomUUID } from 'crypto';
 import { MAX_SESSION_HOURS, SessionStatus, SkillLevel } from '@shuttle-connect/types';
-import { InvalidSlotValuesError, SessionFullError, SessionNotOpenError } from './session.error';
+import {
+  InvalidSlotValuesError,
+  SessionFullError,
+  SessionNotOpenError,
+  SlotsBelowFilledError,
+} from './session.error';
 import {
   InvalidFieldLengthError,
   InvalidSessionTimeError,
@@ -49,12 +54,7 @@ export class Session {
       throw new InvalidSlotValuesError(props.slotsRemaining, props.slotsTotal);
     }
 
-    if (
-      props.description &&
-      (props.description.length === 0 || props.description.length > MAX_DESCRIPTION_LENGTH)
-    ) {
-      throw new InvalidFieldLengthError('description', 0, MAX_DESCRIPTION_LENGTH);
-    }
+    this.assertValidDescription(props.description);
 
     this.validateTimeSlot(props.startTime, props.endTime);
 
@@ -105,6 +105,31 @@ export class Session {
     }
 
     this.slotsRemaining -= 1;
+  }
+
+  static assertValidDescription(description?: string): void {
+    if (description && description.length > MAX_DESCRIPTION_LENGTH) {
+      throw new InvalidFieldLengthError('description', 0, MAX_DESCRIPTION_LENGTH);
+    }
+  }
+
+  // Pure: the filled count (total - remaining) is fixed by approvals, so changing the total moves
+  // only the open slots. The new total can't drop below what's already filled, and the status
+  // follows: no open slots -> FULL, otherwise OPEN.
+  static resizeSlots(
+    oldTotal: number,
+    oldRemaining: number,
+    newTotal: number,
+  ): { slotsRemaining: number; status: SessionStatus } {
+    const filled = oldTotal - oldRemaining;
+    const slotsRemaining = newTotal - filled;
+    if (slotsRemaining < 0) {
+      throw new SlotsBelowFilledError(newTotal, filled);
+    }
+    return {
+      slotsRemaining,
+      status: slotsRemaining === 0 ? SessionStatus.FULL : SessionStatus.OPEN,
+    };
   }
 
   static validateTimeSlot(startTime: Date, endTime: Date) {

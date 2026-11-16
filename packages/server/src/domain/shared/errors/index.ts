@@ -24,3 +24,4 @@ export * from './rejoin-cooldown.error';
 export * from './invalid-cover-upload.error';
 export * from './cover-change-limit-reached.error';
 export * from './rate-limit-exceeded.error';
+export * from './session-not-editable.error';

@@ -18,9 +18,15 @@ import {
   GetSessionByIdUseCase,
   GetSessionsByUserIdUseCase,
   ListSessionsByDistrictUseCase,
+  UpdateSessionUseCase,
   UploadCoverUseCase,
 } from '../../application/session';
-import { CreateSessionDto, DecideRequestDto, ListSessionsByDistrictDto } from '../dtos';
+import {
+  CreateSessionDto,
+  DecideRequestDto,
+  ListSessionsByDistrictDto,
+  UpdateSessionDto,
+} from '../dtos';
 import { ValidateBodyPipe } from '../pipes';
 import { type AuthUser, CurrentUser, Public } from '../guard';
 import {
@@ -51,6 +57,8 @@ export class SessionController {
     private readonly withdrawRequestUseCase: WithdrawRequestUseCase,
     @Inject(UploadCoverUseCase)
     private readonly uploadCoverUseCase: UploadCoverUseCase,
+    @Inject(UpdateSessionUseCase)
+    private readonly updateSessionUseCase: UpdateSessionUseCase,
   ) {}
 
   @Public()
@@ -89,6 +97,17 @@ export class SessionController {
   ) {
     const createdSessions = await this.createSessionUseCase.execute(user.id, createSessionDTO);
     return createdSessions;
+  }
+
+  // Host-only edit of the fields that live only on the session's own item. Court and time are not
+  // accepted (UpdateSessionDto has no such fields) -- request items copy them.
+  @Patch(':id')
+  async updateSession(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body(new ValidateBodyPipe(UpdateSessionDto)) updateSessionDTO: UpdateSessionDto,
+  ) {
+    return this.updateSessionUseCase.execute(user.id, id, updateSessionDTO);
   }
 
   // The file is sent straight to us (multipart/form-data, field "file") instead of to S3 via a

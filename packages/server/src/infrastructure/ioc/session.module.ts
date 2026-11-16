@@ -5,6 +5,7 @@ import {
   GetSessionByIdUseCase,
   GetSessionsByUserIdUseCase,
   ListSessionsByDistrictUseCase,
+  UpdateSessionUseCase,
   UploadCoverUseCase,
 } from '../../application/session';
 import { COVER_STORAGE, SESSION_REPOSITORY } from '../../domain/session';
@@ -40,6 +41,7 @@ import { REQUEST_REPOSITORY } from '../../domain/request';
     UndoDecisionUseCase,
     WithdrawRequestUseCase,
     UploadCoverUseCase,
+    UpdateSessionUseCase,
     DynamoDbClientProvider,
     TableNameProvider,
     { provide: SESSION_REPOSITORY, useClass: SessionRepositoryDynamoDB },
